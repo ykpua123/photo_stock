@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import DetailCards from './DetailCards'; // Assuming DetailCards is in the same folder or update the path accordingly
 import Popup from './Popup';
 import { MdCheckCircle, MdContentCopy, MdDeleteForever } from "react-icons/md";
+import { FaCheck } from "react-icons/fa";
 import { CiCirclePlus, CiCircleMinus } from "react-icons/ci";
 import Collapse from '@mui/material/Collapse'; // Import MUI's Collapse component
 
@@ -14,7 +15,7 @@ interface Result {
     nasLocation: string;
     image?: File | string | null;
     isSaved?: boolean;
-    errorMessage?: string;
+    errorMessage?: string | null;  // Optional errorMessage to store validation errors
     created_at?: string;
     status?: string;
 }
@@ -32,6 +33,8 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement | null>(null);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const [copiedInvoiceIndex, setCopiedInvoiceIndex] = useState<number | null>(null); // For Invoice Number
+    const [copiedNasLocationIndex, setCopiedNasLocationIndex] = useState<number | null>(null); // For NAS Location
     const [popupMessage, setPopupMessage] = useState<string | null>(null);
     const [popupType, setPopupType] = useState<'success' | 'error'>('success');
 
@@ -84,18 +87,18 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const handleStatusChange = async (invNumber: string, status: string) => {
         // Save the current scroll position
         const scrollPosition = window.scrollY;
-    
+
         // Save the current page (assuming currentPage is your pagination state)
         const currentPage = localStorage.getItem('currentPage') || "1";
-    
+
         // Update the state immediately for the specific entry's status
         setStatuses(prevStatuses => ({
             ...prevStatuses,
             [invNumber]: status,
         }));
-    
+
         setIsStatusMenuOpen(null); // Close the dropdown after selection
-    
+
         try {
             // Send the updated status to the backend API to save it
             const response = await fetch('/api/updateStatus', {
@@ -105,16 +108,16 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                 },
                 body: JSON.stringify({ invNumber, status }),
             });
-    
+
             if (response.ok) {
                 // Save the success message and its type to localStorage
                 localStorage.setItem('popupMessage', 'Status updated successfully');
                 localStorage.setItem('popupType', 'success');
-    
+
                 // Store the scroll position and the current page before refreshing
                 localStorage.setItem('scrollPosition', String(scrollPosition));
                 localStorage.setItem('currentPage', String(currentPage));
-    
+
                 // Reload the page after a successful update
                 window.location.reload();
             } else {
@@ -122,7 +125,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                 // Save the failure message and its type to localStorage
                 localStorage.setItem('popupMessage', 'Failed to update status');
                 localStorage.setItem('popupType', 'error');
-    
+
                 window.location.reload(); // Reload page on failure to maintain UI consistency
             }
         } catch (error) {
@@ -158,6 +161,12 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     }, []);
 
     const handleDelete = async (result: Result) => {
+         // Save the current scroll position
+         const scrollPosition = window.scrollY;
+
+         // Save the current page (assuming currentPage is your pagination state)
+         const currentPage = localStorage.getItem('currentPage') || "1";
+
         if (result.isSaved) {
             const confirmDelete = window.confirm(`Are you sure you want to delete ${result.invNumber}?`);
             if (!confirmDelete) return;
@@ -171,11 +180,23 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                     body: JSON.stringify({ invNumber: result.invNumber }),
                 });
 
+
                 if (response.ok) {
+                    // Save the success message and its type to localStorage
+                    localStorage.setItem('popupMessage', 'Entry is deleted successfully');
+                    localStorage.setItem('popupType', 'success');
+
+                    // Store the scroll position and the current page before refreshing
+                    localStorage.setItem('scrollPosition', String(scrollPosition));
+                    localStorage.setItem('currentPage', String(currentPage));
                     window.location.reload();
                 } else {
                     const errorData = await response.json();
-                    alert(`Error deleting result: ${errorData.message}`);
+                    // Save the failure message and its type to localStorage
+                    localStorage.setItem('popupMessage', 'Faild to delete entry');
+                    localStorage.setItem('popupType', 'error');
+                    
+                    // alert(`Error deleting result: ${errorData.message}`);
                 }
             } catch (error) {
                 console.error('Error deleting result:', error);
@@ -186,11 +207,39 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         }
     };
 
-    const handleCopy = (text: string, index: number) => {
-        navigator.clipboard.writeText(text);
+    // Normal copy function and copy function without inv# for spec list
+    const handleCopySpecs = (content: string, index: number, isSpecsOnly: boolean = false) => {
+        let textToCopy = content;
+
+        if (isSpecsOnly) {
+            // If isSpecsOnly is true, remove the INV# line
+            textToCopy = content
+                .split('\n') // Split the content into an array of lines
+                .filter(line => !line.startsWith('INV#:')) // Filter out the line that starts with 'INV#:'
+                .join('\n'); // Join the remaining lines back into a single string
+        }
+
+        // Copy the text to clipboard
+        navigator.clipboard.writeText(textToCopy);
+
         setCopiedIndex(index);
         setTimeout(() => setCopiedIndex(null), 2000);
     };
+
+    // Copy function for Invoice Number
+    const handleCopyInvoice = (content: string, index: number) => {
+        navigator.clipboard.writeText(content);
+        setCopiedInvoiceIndex(index);
+        setTimeout(() => setCopiedInvoiceIndex(null), 2000); // Reset after 2 seconds
+    };
+
+    // Copy function for NAS Location
+    const handleCopyNasLocation = (content: string, index: number) => {
+        navigator.clipboard.writeText(content);
+        setCopiedNasLocationIndex(index);
+        setTimeout(() => setCopiedNasLocationIndex(null), 2000); // Reset after 2 seconds
+    };
+
 
     return (
         <div className="container mx-auto mt-6">
@@ -198,7 +247,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                 <thead>
                     <tr className="border-b border-white/20 text-white/50">
                         <th className="rounded-l-lg px-4 py-2 w-max font-light">Date</th>
-                        <th className="px-4 py-2 w-max font-light">Invoice Name</th>
+                        <th className="px-4 py-2 w-max font-light">Invoice ID</th>
                         <th className="px-4 py-2 w-max font-light">NAS Location</th>
                         <th className="px-4 py-2 w-max font-light">Total</th>
                         <th className="px-4 py-2 w-max font-light">Status</th>
@@ -212,11 +261,42 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                 <td className="px-4 py-1 w-auto cursor-pointer border-r border-white/20" onClick={() => toggleRow(index)}>
                                     {result.created_at ? formatDate(result.created_at) : 'Unknown'}
                                 </td>
-                                <td className="px-4 py-1 w-auto cursor-pointer border-r border-white/20" onClick={() => toggleRow(index)}>
+                                <td className="px-4 py-1 w-fit cursor-pointer border-r border-white/20 group relative" onClick={() => toggleRow(index)}>
                                     {result.total}_{result.invNumber}
+
+                                    {/* Copy button appears only on hover */}
+                                    <button
+                                        className="absolute right-0 top-0 text-black hover:bg-gray-300 bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-1.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Prevent triggering the toggleRow function
+                                            handleCopyInvoice(`${result.total}_${result.invNumber}`, index);
+                                        }}
+                                        title="Copy invoice ID"
+                                    >
+                                        {copiedInvoiceIndex === index ? (
+                                            <FaCheck className="text-green-700" size={14} />
+                                        ) : (
+                                            <MdContentCopy size={16} />
+                                        )}
+                                    </button>
                                 </td>
-                                <td className="px-4 py-1 w-full cursor-pointer border-r border-white/20" onClick={() => toggleRow(index)}>
+
+                                <td className="px-4 py-1 w-full cursor-pointer border-r border-white/20 group relative" onClick={() => toggleRow(index)}>
                                     {result.nasLocation}
+                                    <button
+                                        className="absolute right-0 top-0 text-black hover:bg-gray-300 bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-1.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Prevent triggering the toggleRow function
+                                            handleCopyNasLocation(result.nasLocation, index);
+                                        }}
+                                        title="Copy NAS location"
+                                    >
+                                        {copiedNasLocationIndex === index ? (
+                                            <FaCheck className="text-green-700" size={14} />
+                                        ) : (
+                                            <MdContentCopy size={16} />
+                                        )}
+                                    </button>
                                 </td>
                                 <td className="px-4 py-1 w-auto cursor-pointer border-r border-white/20" onClick={() => toggleRow(index)}>
                                     {result.total}
@@ -289,10 +369,10 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                     </button>
                                     <button
                                         className="px-2 py-1 flex items-center text-amber-300 hover:text-amber-500"
-                                        onClick={() => handleCopy(`${result.originalContent}`, index)}
+                                        onClick={() => handleCopySpecs(`${result.originalContent}`, index, true)}
                                         title="Copy specs list"
                                     >
-                                        {copiedIndex === index ? <MdCheckCircle className="text-green-500" size={20} /> : <MdContentCopy size={20} />}
+                                        {copiedIndex === index ? <MdCheckCircle className="text-green-500" size={19} /> : <MdContentCopy size={19} />}
                                     </button>
                                     <button onClick={() => handleDelete(result)} title="Delete entry">
                                         <MdDeleteForever size={22} className="text-red-500 hover:text-red-700" />
@@ -317,8 +397,8 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                     ))}
                 </tbody>
             </table>
-             {/* PopupMessage Component */}
-             {popupMessage && <Popup message={popupMessage} type={popupType} />}
+            {/* PopupMessage Component */}
+            {popupMessage && <Popup message={popupMessage} type={popupType} />}
         </div>
     );
 };

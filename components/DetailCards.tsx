@@ -10,7 +10,7 @@ interface Result {
     nasLocation: string;
     image?: File | string | null; // Image can be either File (in TextAnalyzer) or a string (imagePath in ResultsPage)
     isSaved?: boolean; // Boolean flag to distinguish between saved and unsaved results
-    errorMessage?: string; // Added property to hold any error message
+    errorMessage?: string | null;  // Optional errorMessage to store validation errors
     onDelete?: (result: Result) => void;
 }
 
@@ -144,24 +144,21 @@ const DetailCards: React.FC<DetailCardsProps> = ({ results, onDelete, totalResul
                         <div className="w-full bg-red-900/10 mt-4 rounded-lg">
                             <p className="text-red-500 font-mono text-sm px-4 py-2">
                                 {result.errorMessage
-                                    ? result.errorMessage.split('\n').map((line, index) => (
-                                        <React.Fragment key={index}>
-                                            <div className="flex items-center space-x-2 py-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="py-1 icon-triangle-exclamation" width="24" height="24">
-                                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3l-8.47-14.14a2 2 0 0 0-3.42 0z"></path>
-                                                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                                                    <line x1="12" y1="17" x2="12" y2="17.01"></line>
-                                                </svg>
-                                                <span>{line}</span>
-                                            </div>
-                                        </React.Fragment>
-                                    ))
-                                    : null
-                                }
+                                    .split('\n')
+                                    .filter(line => line.trim() !== '') // Filter out any empty lines
+                                    .map((line, index) => (
+                                        <div key={index} className="flex items-center space-x-2 py-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="py-1 icon-triangle-exclamation" width="24" height="24">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3l-8.47-14.14a2 2 0 0 0-3.42 0z"></path>
+                                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                                <line x1="12" y1="17" x2="12" y2="17.01"></line>
+                                            </svg>
+                                            <span>{line}</span>
+                                        </div>
+                                    ))}
                             </p>
                         </div>
                     )}
-
 
                 </li>
             ))}

@@ -35,69 +35,45 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: 'Invalid data format, expecting arrays' });
       }
 
+      // Ensure that there are no errors passed from the frontend
+      if (fields.errors && fields.errors.length > 0) {
+        return res.status(400).json({ message: 'Entries were unable to save due to errors.', errors: fields.errors });
+      }
+
+      let imagePaths = []; // To store image paths for valid entries
+
+      // Process the images and save them
+      for (let i = 0; i < invNumber.length; i++) {
+        const imageFile = files.image[i];
+        const fileName = `${Date.now()}_${imageFile.originalFilename}`;
+        const newFilePath = path.join(uploadDir, fileName);
+
+        try {
+          fs.renameSync(imageFile.filepath, newFilePath);
+          imagePaths[i] = `/uploads/${fileName}`; // Assign the correct image path
+        } catch (error) {
+          console.error("Error saving image:", error);
+          return res.status(500).json({ message: 'Error saving image', error });
+        }
+      }
+
+      // Proceed to save valid entries to the database
       try {
         const connection = await db();
-        const errors = [];
 
-        // Loop through each entry and validate
         for (let i = 0; i < invNumber.length; i++) {
-          let errorMessage = '';
-          let imagePath = ''; // Initialize imagePath for each entry
-
-          // 1. Check if invNumber already exists in the database
-          const [existingEntry] = await connection.query('SELECT invNumber FROM results WHERE invNumber = ?', [invNumber[i]]);
-          if (existingEntry.length > 0) {
-            errorMessage += `INV#: ${invNumber[i]} is already in the database.\n`;
-          }
-
-          // 2. Check if an image is missing
-          if (!files.image || !files.image[i]) {
-            errorMessage += 'Image is missing, please ensure image filename matches INV#.\n';
-          } else {
-            // Save image if it exists
-            const imageFile = files.image[i];
-            const fileName = `${Date.now()}_${imageFile.originalFilename}`;
-            const newFilePath = path.join(uploadDir, fileName);
-
-            try {
-              fs.renameSync(imageFile.filepath, newFilePath);
-              imagePath = `/uploads/${fileName}`; // Assign the correct image path
-            } catch (error) {
-              console.error("Error saving image:", error);
-              return res.status(500).json({ message: 'Error saving image', error });
-            }
-          }
-
-          // 3. Check for missing spec items in originalContent
-          const requiredSpecs = ['INV#', 'CPU', 'GPU', 'CASE', 'MOBO', 'RAM', 'PSU'];
-          const missingSpecs = requiredSpecs.filter(spec => !originalContent[i].includes(spec));
-          if (missingSpecs.length > 0) {
-            errorMessage += `Missing ${missingSpecs.join(', ')} in the spec list, ensure format is correct.\n`;
-          }
-
-          // If there's an error, store it and continue to the next entry
-          if (errorMessage) {
-            errors.push({ invNumber: invNumber[i], message: errorMessage.trim() });
-            continue; // Skip saving this entry
-          }
-
-          // Insert the individual result into the database
           const query = `
             INSERT INTO results (invNumber, total, originalContent, nasLocation, imagePath)
             VALUES (?, ?, ?, ?, ?)
           `;
-          const values = [invNumber[i], total[i], originalContent[i], nasLocation[i], imagePath];
+          const values = [invNumber[i], total[i], originalContent[i], nasLocation[i], imagePaths[i]];
 
           await connection.query(query, values);
         }
 
         connection.end();
-
-        if (errors.length > 0) {
-          return res.status(400).json({ message: 'Entries were unable to save due to errors', errors });
-        }
-
         res.status(200).json({ message: 'Results saved successfully!' });
+
       } catch (error) {
         console.error("Error saving result:", error);
         res.status(500).json({ message: 'Error saving result', error });

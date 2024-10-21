@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import DetailCards from './DetailCards'; // Assuming DetailCards is in the same folder or update the path accordingly
+import DetailCards from './DetailCards';
 import Popup from './Popup';
 import { MdCheckCircle, MdContentCopy, MdDeleteForever } from "react-icons/md";
 import { FaCheck } from "react-icons/fa";
 import { CiCirclePlus, CiCircleMinus } from "react-icons/ci";
 import Collapse from '@mui/material/Collapse'; // Import MUI's Collapse component
+import { Divider } from '@mui/material';
 
 interface Result {
     invNumber: string;
@@ -25,9 +26,10 @@ interface TableRowsProps {
     totalResults: number;
     searchedResults: number;
     onDelete: (result: Result) => void;
+    expandedRow?: string | null; // Prop to handle external row expansion based on invNumber
 }
 
-const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, searchedResults }) => {
+const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, searchedResults, expandedRow }) => {
     const [expandedRows, setExpandedRows] = useState<number[]>([]);
     const [statuses, setStatuses] = useState<{ [invNumber: string]: string }>({}); // Use invNumber as key
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState<number | null>(null);
@@ -37,6 +39,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const [copiedNasLocationIndex, setCopiedNasLocationIndex] = useState<number | null>(null); // For NAS Location
     const [popupMessage, setPopupMessage] = useState<string | null>(null);
     const [popupType, setPopupType] = useState<'success' | 'error'>('success');
+    
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -74,33 +77,45 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
             return acc;
         }, {} as { [invNumber: string]: string });
         setStatuses(initialStatuses);
-    }, [results]); // Re-run every time `results` changes
+    }, [results]);
 
-    // Handle row expand/collapse
-    const toggleRow = (index: number) => {
+     // Handle row toggle expansion/collapse
+     const toggleRow = (index: number) => {
         if (expandedRows.includes(index)) {
-            setExpandedRows(expandedRows.filter(row => row !== index)); // Collapse row
+            setExpandedRows(expandedRows.filter(row => row !== index)); // Collapse the row if it is already expanded
         } else {
-            setExpandedRows([...expandedRows, index]); // Expand row
+            setExpandedRows([...expandedRows, index]); // Expand the row while keeping other rows expanded
         }
     };
-    const handleStatusChange = async (invNumber: string, status: string) => {
-        // Save the current scroll position
-        const scrollPosition = window.scrollY;
 
-        // Save the current page (assuming currentPage is your pagination state)
+    useEffect(() => {
+        if (expandedRow) {
+            const rowIndex = results.findIndex(result => result.invNumber === expandedRow);
+            if (rowIndex !== -1) {
+                // If the row is found in the current page's results, expand it
+                setExpandedRows([rowIndex]);
+                const rowElement = document.getElementById(`row-${expandedRow}`);
+                if (rowElement) {
+                    rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } else {
+                setExpandedRows([]); // If no match on this page, collapse rows
+            }
+        }
+    }, [expandedRow, results]);
+
+    const handleStatusChange = async (invNumber: string, status: string) => {
+        const scrollPosition = window.scrollY;
         const currentPage = localStorage.getItem('currentPage') || "1";
 
-        // Update the state immediately for the specific entry's status
         setStatuses(prevStatuses => ({
             ...prevStatuses,
             [invNumber]: status,
         }));
 
-        setIsStatusMenuOpen(null); // Close the dropdown after selection
+        setIsStatusMenuOpen(null);
 
         try {
-            // Send the updated status to the backend API to save it
             const response = await fetch('/api/updateStatus', {
                 method: 'POST',
                 headers: {
@@ -110,23 +125,16 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
             });
 
             if (response.ok) {
-                // Save the success message and its type to localStorage
                 localStorage.setItem('popupMessage', 'Status updated successfully');
                 localStorage.setItem('popupType', 'success');
-
-                // Store the scroll position and the current page before refreshing
                 localStorage.setItem('scrollPosition', String(scrollPosition));
                 localStorage.setItem('currentPage', String(currentPage));
-
-                // Reload the page after a successful update
                 window.location.reload();
             } else {
                 const errorData = await response.json();
-                // Save the failure message and its type to localStorage
                 localStorage.setItem('popupMessage', 'Failed to update status');
                 localStorage.setItem('popupType', 'error');
-
-                window.location.reload(); // Reload page on failure to maintain UI consistency
+                window.location.reload();
             }
         } catch (error) {
             console.error('Error updating status:', error);
@@ -134,26 +142,21 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         }
     };
 
-
-    // Restore the scroll position after the page reloads
     useEffect(() => {
         const savedScrollPosition = localStorage.getItem('scrollPosition');
         if (savedScrollPosition) {
             window.scrollTo(0, Number(savedScrollPosition));
-            localStorage.removeItem('scrollPosition'); // Remove after restoring
+            localStorage.removeItem('scrollPosition');
         }
     }, []);
 
+    const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            setIsStatusMenuOpen(null);
+        }
+    };
 
-
-    // Close dropdown when clicking outside of it
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsStatusMenuOpen(null); // Close the dropdown when clicking outside
-            }
-        };
-
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
@@ -161,11 +164,8 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     }, []);
 
     const handleDelete = async (result: Result) => {
-         // Save the current scroll position
-         const scrollPosition = window.scrollY;
-
-         // Save the current page (assuming currentPage is your pagination state)
-         const currentPage = localStorage.getItem('currentPage') || "1";
+        const scrollPosition = window.scrollY;
+        const currentPage = localStorage.getItem('currentPage') || "1";
 
         if (result.isSaved) {
             const confirmDelete = window.confirm(`Are you sure you want to delete ${result.invNumber}?`);
@@ -180,23 +180,16 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                     body: JSON.stringify({ invNumber: result.invNumber }),
                 });
 
-
                 if (response.ok) {
-                    // Save the success message and its type to localStorage
                     localStorage.setItem('popupMessage', 'Entry is deleted successfully');
                     localStorage.setItem('popupType', 'success');
-
-                    // Store the scroll position and the current page before refreshing
                     localStorage.setItem('scrollPosition', String(scrollPosition));
                     localStorage.setItem('currentPage', String(currentPage));
                     window.location.reload();
                 } else {
                     const errorData = await response.json();
-                    // Save the failure message and its type to localStorage
-                    localStorage.setItem('popupMessage', 'Faild to delete entry');
+                    localStorage.setItem('popupMessage', 'Failed to delete entry');
                     localStorage.setItem('popupType', 'error');
-                    
-                    // alert(`Error deleting result: ${errorData.message}`);
                 }
             } catch (error) {
                 console.error('Error deleting result:', error);
@@ -207,42 +200,55 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         }
     };
 
-    // Normal copy function and copy function without inv# for spec list
-    const handleCopySpecs = (content: string, index: number, isSpecsOnly: boolean = false) => {
-        let textToCopy = content;
-
-        if (isSpecsOnly) {
-            // If isSpecsOnly is true, remove the INV# line
-            textToCopy = content
-                .split('\n') // Split the content into an array of lines
-                .filter(line => !line.startsWith('INV#:')) // Filter out the line that starts with 'INV#:'
-                .join('\n'); // Join the remaining lines back into a single string
-        }
-
-        // Copy the text to clipboard
-        navigator.clipboard.writeText(textToCopy);
-
-        setCopiedIndex(index);
-        setTimeout(() => setCopiedIndex(null), 2000);
-    };
-
-    // Copy function for Invoice Number
-    const handleCopyInvoice = (content: string, index: number) => {
-        navigator.clipboard.writeText(content);
-        setCopiedInvoiceIndex(index);
-        setTimeout(() => setCopiedInvoiceIndex(null), 2000); // Reset after 2 seconds
-    };
-
-    // Copy function for NAS Location
-    const handleCopyNasLocation = (content: string, index: number) => {
-        navigator.clipboard.writeText(content);
-        setCopiedNasLocationIndex(index);
-        setTimeout(() => setCopiedNasLocationIndex(null), 2000); // Reset after 2 seconds
-    };
-
+        // Normal copy function and copy function without inv# for spec list
+        const handleCopySpecs = (content: string, index: number, isSpecsOnly: boolean = false) => {
+            let textToCopy = content;
+    
+            if (isSpecsOnly) {
+                // If isSpecsOnly is true, remove the INV# line
+                textToCopy = content
+                    .split('\n') // Split the content into an array of lines
+                    .filter(line => !line.startsWith('INV#:')) // Filter out the line that starts with 'INV#:'
+                    .join('\n'); // Join the remaining lines back into a single string
+            }
+    
+            // Copy the text to clipboard
+            navigator.clipboard.writeText(textToCopy);
+    
+            setCopiedIndex(index);
+            setTimeout(() => setCopiedIndex(null), 2000);
+        };
+    
+        // Copy function for Invoice Number
+        const handleCopyInvoice = (content: string, index: number) => {
+            navigator.clipboard.writeText(content);
+            setCopiedInvoiceIndex(index);
+            setTimeout(() => setCopiedInvoiceIndex(null), 2000); // Reset after 2 seconds
+        };
+    
+        // Copy function for NAS Location
+        const handleCopyNasLocation = (content: string, index: number) => {
+            navigator.clipboard.writeText(content);
+            setCopiedNasLocationIndex(index);
+            setTimeout(() => setCopiedNasLocationIndex(null), 2000); // Reset after 2 seconds
+        };
 
     return (
         <div className="container mx-auto mt-6">
+            <div className="flex justify-start mb-2">
+                <button
+                    className="bg-transparent border border-white/30 hover:bg-white hover:text-black text-white/50 px-3 py-1 rounded-lg mr-2 font-mono"
+                    onClick={() => {
+                        if (expandedRows.length > 0) {
+                            setExpandedRows([]); // Collapse all rows if all are expanded
+                        } else {
+                            setExpandedRows(results.map((_, index) => index)); // Expand all rows
+                        }
+                    }}
+                >
+                    {expandedRows.length > 0 ? 'Collapse All' : 'Expand All'}
+                </button>
+            </div>
             <table className="table-auto w-full text-left font-mono">
                 <thead>
                     <tr className="border-b border-white/20 text-white/50">
@@ -257,44 +263,46 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                 <tbody>
                     {results.map((result, index) => (
                         <React.Fragment key={index}>
-                            <tr className="border-b border-t border-white/20 hover:bg-white/10">
+                            <tr id={`row-${result.invNumber}`} key={index} className="border-b border-t border-white/20 hover:bg-white/10">
                                 <td className="px-4 py-1 w-auto cursor-pointer border-r border-white/20" onClick={() => toggleRow(index)}>
                                     {result.created_at ? formatDate(result.created_at) : 'Unknown'}
                                 </td>
                                 <td className="px-4 py-1 w-fit cursor-pointer border-r border-white/20 group relative" onClick={() => toggleRow(index)}>
                                     {result.total}_{result.invNumber}
 
-                                    {/* Copy button appears only on hover */}
                                     <button
-                                        className="absolute right-0 top-0 text-black hover:bg-gray-300 bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-1.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
+                                        className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
                                         onClick={(e) => {
-                                            e.stopPropagation(); // Prevent triggering the toggleRow function
+                                            e.stopPropagation();
                                             handleCopyInvoice(`${result.total}_${result.invNumber}`, index);
                                         }}
                                         title="Copy invoice ID"
                                     >
                                         {copiedInvoiceIndex === index ? (
-                                            <FaCheck className="text-green-700" size={14} />
+                                            <FaCheck className="text-green-700 p-1" size={22} />
                                         ) : (
-                                            <MdContentCopy size={16} />
+                                            <div className="hover:bg-gray-300 rounded-full">
+                                                <MdContentCopy className="p-1" size={22} />
+                                            </div>
                                         )}
                                     </button>
                                 </td>
-
                                 <td className="px-4 py-1 w-full cursor-pointer border-r border-white/20 group relative" onClick={() => toggleRow(index)}>
                                     {result.nasLocation}
                                     <button
-                                        className="absolute right-0 top-0 text-black hover:bg-gray-300 bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-1.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
+                                        className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
                                         onClick={(e) => {
-                                            e.stopPropagation(); // Prevent triggering the toggleRow function
+                                            e.stopPropagation();
                                             handleCopyNasLocation(result.nasLocation, index);
                                         }}
                                         title="Copy NAS location"
                                     >
                                         {copiedNasLocationIndex === index ? (
-                                            <FaCheck className="text-green-700" size={14} />
+                                            <FaCheck className="text-green-700 p-1" size={22} />
                                         ) : (
-                                            <MdContentCopy size={16} />
+                                            <div className="hover:bg-gray-300 rounded-full">
+                                                <MdContentCopy className="p-1" size={22} />
+                                            </div>
                                         )}
                                     </button>
                                 </td>
@@ -397,7 +405,6 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                     ))}
                 </tbody>
             </table>
-            {/* PopupMessage Component */}
             {popupMessage && <Popup message={popupMessage} type={popupType} />}
         </div>
     );

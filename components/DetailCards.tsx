@@ -107,8 +107,7 @@ const DetailCards: React.FC<DetailCardsProps> = ({ results, onDelete, totalResul
                             </button>
                         </div>
                     </div>
-
-
+            
 
                     {/* Flex container for content and image */}
                     <div className="flex w-full md:flex-row flex-col rounded-lg p-4 mt-5 bg-neutral-900 border border-white/60 flex-col-reverse">

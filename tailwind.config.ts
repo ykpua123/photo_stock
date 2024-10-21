@@ -19,12 +19,23 @@ const config: Config = {
         '0%': { opacity: '1' },
         '100%': { opacity: '0' },
       },
+      keyframes: {
+        bounceRightLeft: {
+          '0%': { transform: 'translateX(0)' },    // Starts at current position
+          '50%': { transform: 'translateX(6px)' }, // Move right slightly
+          '100%': { transform: 'translateX(0)' },   // End at original position
+        },
+        bounceLeftRight: {
+          '0%': { transform: 'translateX(0)' },    // Starts at current position
+          '50%': { transform: 'translateX(-6px)' }, // Move left slightly
+          '100%': { transform: 'translateX(0)' },   // End at original position
+        },
+      },
+      animation: {
+        bounceRightLeft: 'bounceRightLeft 0.6s ease-in-out 1', // Animation runs for 0.5s and happens once
+        bounceLeftRight: 'bounceLeftRight 0.6s ease-in-out 1', // Animation runs for 0.5s and happens once
+      },
     },
-    animation: {
-      'fade-in': 'fadeIn 0.5s ease-out',
-      'fade-out': 'fadeOut 0.5s ease-out',
-    },
-    
   },
   plugins: [],
 };

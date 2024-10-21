@@ -14,6 +14,7 @@
 /.next/
 /out/
 .next.zip
+.photo_stock.zip
 
 # production
 /build

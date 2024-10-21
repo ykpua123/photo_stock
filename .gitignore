@@ -5,7 +5,7 @@
 /.pnp
 .pnp.js
 .yarn/install-state.gz
-/pubic/uploads/
+/public/uploads/
 .vscode/
 
 # testing

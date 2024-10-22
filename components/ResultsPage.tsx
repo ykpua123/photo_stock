@@ -29,19 +29,53 @@ const ResultsPage = () => {
     const [carouselImages, setCarouselImages] = useState<string[]>([]);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
+    // Function to extract the date from nasLocation
+    const extractDateFromNasLocation = (nasLocation: string): Date | null => {
+        // Regex to match the pattern "241004_Photo" where "241004" is the date in yymmdd format
+        const regex = /(\d{2})(\d{2})(\d{2})_/; // Captures the year, month, and day from "241004_Photo"
+        const match = nasLocation.match(regex);
+
+        if (match) {
+            const year = parseInt(match[1], 10) + 2000; // Convert "24" to 2024 (assuming it's in the 21st century)
+            const month = parseInt(match[2], 10) - 1; // Convert "10" to a month index (0-based, so subtract 1)
+            const day = parseInt(match[3], 10); // Extract day directly from "04"
+
+            return new Date(year, month, day); // Return the full Date object
+        }
+
+        return null;
+    };
+
+
+    // Sort results by nasLocation date (newest to oldest)
+    const sortResultsByNasLocation = (data: Result[]) => {
+        return [...data].sort((a, b) => {
+            const dateA = extractDateFromNasLocation(a.nasLocation);
+            const dateB = extractDateFromNasLocation(b.nasLocation);
+
+            if (dateA && dateB) {
+                return dateB.getTime() - dateA.getTime(); // Sort newest to oldest (descending)
+            }
+
+            return 0;
+        });
+    };
+
 
     const fetchResults = async () => {
         setLoading(true);
         try {
             const response = await fetch('/api/getResults');
             const data = await response.json();
-            setAllResults(data.results || []);
+            const sortedData = sortResultsByNasLocation(data.results || []); // Sort results when fetched
+            setAllResults(sortedData); // Save sorted results
             setLoading(false);
         } catch (error) {
             console.error("Error fetching results:", error);
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         const savedPage = localStorage.getItem('currentPage');
@@ -228,8 +262,8 @@ const ResultsPage = () => {
                 )}
             </div>
             <div>
-                <BackToTopButton/>
-                <BackToBotttomButton/>
+                <BackToTopButton />
+                <BackToBotttomButton />
             </div>
         </div>
     );

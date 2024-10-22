@@ -5,7 +5,8 @@ import { useDebounce } from 'use-debounce';
 import TableRows from '@/components/TableRows';
 import PreviewCarousel from '@/components/PreviewCarousel'; // Import PreviewCarousel
 import { FaSearch } from 'react-icons/fa';
-import BackToTopButton from '@/components/BackToTopButton'; 
+import BackToTopButton from '@/components/BackToTopButton';
+import BackToBotttomButton from './BackToBottomButton';
 
 interface Result {
     invNumber: string;
@@ -27,7 +28,7 @@ const ResultsPage = () => {
     const [loading, setLoading] = useState(false);
     const [carouselImages, setCarouselImages] = useState<string[]>([]);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
-    
+
 
     const fetchResults = async () => {
         setLoading(true);
@@ -101,13 +102,13 @@ const ResultsPage = () => {
     // **Handler for clicking an image in the carousel**
     const handleImageClick = (imagePath: string) => {
         const matchedResult = allResults.find(result => result.imagePath === imagePath);
-    
+
         if (matchedResult) {
             const resultIndex = allResults.findIndex(result => result.invNumber === matchedResult.invNumber);
             const newPage = Math.floor(resultIndex / resultsPerPage) + 1;
-    
+
             setExpandedRow(matchedResult.invNumber);
-    
+
             if (newPage !== currentPage) {
                 setCurrentPage(newPage);
                 localStorage.setItem('currentPage', String(newPage));
@@ -118,19 +119,19 @@ const ResultsPage = () => {
     const indexOfLastResult = currentPage * resultsPerPage;
     const indexOfFirstResult = indexOfLastResult - resultsPerPage;
 
-    const currentResults = debouncedSearchQuery 
+    const currentResults = debouncedSearchQuery
         ? filteredResults // If there is a query, show all filtered results
         : filteredResults.slice(indexOfFirstResult, indexOfLastResult); // Otherwise, use pagination
 
     const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
 
     const handlePageChange = async (newPage: number) => {
-    if (newPage > 0 && newPage <= totalPages) {
-        setCurrentPage(newPage);
-        localStorage.setItem('currentPage', String(newPage));
+        if (newPage > 0 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+            localStorage.setItem('currentPage', String(newPage));
 
-    }
-};
+        }
+    };
 
     useEffect(() => {
         if (expandedRow) {
@@ -226,8 +227,10 @@ const ResultsPage = () => {
                     </div>
                 )}
             </div>
-            {/* BackToTopButton */}
-        <BackToTopButton /> {/* Add this at the end of the component */}
+            <div>
+                <BackToTopButton/>
+                <BackToBotttomButton/>
+            </div>
         </div>
     );
 };

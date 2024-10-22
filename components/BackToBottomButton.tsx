@@ -35,7 +35,7 @@ const BackToBotttomButton: React.FC = () => {
                     <button
                         onClick={scrollToBottom}
                         className=" px-2 py-2 bg-blue-600 hover:bg-blue-800 text-white rounded-full shadow-lg transition-all duration-300"
-                        title="Scroll to bottom"
+                        title="Scroll to Bottom"
                     >
                         <FaArrowDown size={16} />
 

@@ -83,7 +83,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const toggleRow = (invNumber: string) => {
         if (expandedRows.includes(invNumber)) {
             setExpandedRows(expandedRows.filter(row => row !== invNumber)); // Collapse the row if it is already expanded
-            setExpandedRows([]);
+          
         } else {
             setExpandedRows([...expandedRows, invNumber]); // Expand the row while keeping other rows expanded
         }

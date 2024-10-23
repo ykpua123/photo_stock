@@ -311,7 +311,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                             <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(index)}>
                                 {result.total}
                             </td>
-                            <td className="px-2 py-1 w-auto border-r border-white/20 sm:px-4">
+                            <td className="px-2 py-1 w-auto border-r border-white/20 sm:px-4 relative sm:static">
                                 <button
                                     onClick={() => setIsStatusMenuOpen(isStatusMenuOpen === index ? null : index)}
                                     className={`rounded-full py-0 px-2 flex items-center space-x-1 ${statuses[result.invNumber] === 'Scheduled'

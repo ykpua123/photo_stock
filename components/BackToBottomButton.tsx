@@ -31,7 +31,7 @@ const BackToBotttomButton: React.FC = () => {
     return (
         <div>
                 <div className={`hover:opacity-100 fixed bottom-9 left-2/4 transform transition-all duration-300 ease-in-out flex justify-center items-center space-x-2 translate-x-2
-            ${isVisible ? '-translate-y-10 opacity-60' : 'translate-y-20 opacity-0'}`}>
+            ${isVisible ? '-translate-y-10 opacity-60' : 'translate-y-0 opacity-0'}`}>
                     <button
                         onClick={scrollToBottom}
                         className="px-2 py-2 bg-blue-600 hover:bg-blue-800 text-white rounded-full shadow-lg transition-all duration-300"

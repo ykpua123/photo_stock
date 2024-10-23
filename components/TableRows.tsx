@@ -39,7 +39,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const [copiedNasLocationIndex, setCopiedNasLocationIndex] = useState<number | null>(null); // For NAS Location
     const [popupMessage, setPopupMessage] = useState<string | null>(null);
     const [popupType, setPopupType] = useState<'success' | 'error'>('success');
-    
+
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -79,8 +79,8 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         setStatuses(initialStatuses);
     }, [results]);
 
-     // Handle row toggle expansion/collapse
-     const toggleRow = (index: number) => {
+    // Handle row toggle expansion/collapse
+    const toggleRow = (index: number) => {
         if (expandedRows.includes(index)) {
             setExpandedRows(expandedRows.filter(row => row !== index)); // Collapse the row if it is already expanded
         } else {
@@ -200,216 +200,221 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         }
     };
 
-        // Normal copy function and copy function without inv# for spec list
-        const handleCopySpecs = (content: string, index: number, isSpecsOnly: boolean = false) => {
-            let textToCopy = content;
-    
-            if (isSpecsOnly) {
-                // If isSpecsOnly is true, remove the INV# line
-                textToCopy = content
-                    .split('\n') // Split the content into an array of lines
-                    .filter(line => !line.startsWith('INV#:')) // Filter out the line that starts with 'INV#:'
-                    .join('\n'); // Join the remaining lines back into a single string
-            }
-    
-            // Copy the text to clipboard
-            navigator.clipboard.writeText(textToCopy);
-    
-            setCopiedIndex(index);
-            setTimeout(() => setCopiedIndex(null), 2000);
-        };
-    
-        // Copy function for Invoice Number
-        const handleCopyInvoice = (content: string, index: number) => {
-            navigator.clipboard.writeText(content);
-            setCopiedInvoiceIndex(index);
-            setTimeout(() => setCopiedInvoiceIndex(null), 2000); // Reset after 2 seconds
-        };
-    
-        // Copy function for NAS Location
-        const handleCopyNasLocation = (content: string, index: number) => {
-            navigator.clipboard.writeText(content);
-            setCopiedNasLocationIndex(index);
-            setTimeout(() => setCopiedNasLocationIndex(null), 2000); // Reset after 2 seconds
-        };
+    // Normal copy function and copy function without inv# for spec list
+    const handleCopySpecs = (content: string, index: number, isSpecsOnly: boolean = false) => {
+        let textToCopy = content;
+
+        if (isSpecsOnly) {
+            // If isSpecsOnly is true, remove the INV# line
+            textToCopy = content
+                .split('\n') // Split the content into an array of lines
+                .filter(line => !line.startsWith('INV#:')) // Filter out the line that starts with 'INV#:'
+                .join('\n'); // Join the remaining lines back into a single string
+        }
+
+        // Copy the text to clipboard
+        navigator.clipboard.writeText(textToCopy);
+
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+    };
+
+    // Copy function for Invoice Number
+    const handleCopyInvoice = (content: string, index: number) => {
+        navigator.clipboard.writeText(content);
+        setCopiedInvoiceIndex(index);
+        setTimeout(() => setCopiedInvoiceIndex(null), 2000); // Reset after 2 seconds
+    };
+
+    // Copy function for NAS Location
+    const handleCopyNasLocation = (content: string, index: number) => {
+        navigator.clipboard.writeText(content);
+        setCopiedNasLocationIndex(index);
+        setTimeout(() => setCopiedNasLocationIndex(null), 2000); // Reset after 2 seconds
+    };
+
 
     return (
         <div className="container mx-auto mt-6">
-    <div className="flex justify-start mb-2">
-        <button
-            className="bg-transparent border border-white/30 hover:bg-white hover:text-black text-white/50 px-3 py-1 rounded-lg mr-2 font-mono"
-            onClick={() => {
-                if (expandedRows.length > 0) {
-                    setExpandedRows([]); // Collapse all rows if all are expanded
-                } else {
-                    setExpandedRows(results.map((_, index) => index)); // Expand all rows
-                }
-            }}
-        >
-            {expandedRows.length > 0 ? 'Collapse All' : 'Expand All'}
-        </button>
-    </div>
+            <div className="flex justify-start mb-2">
+                <button
+                    className="bg-transparent border border-white/30 hover:bg-white hover:text-black text-white/50 px-3 py-1 rounded-lg mr-2 font-mono"
+                    onClick={() => {
+                        if (expandedRows.length > 0) {
+                            setExpandedRows([]); // Collapse all rows if all are expanded
+                        } else {
+                            setExpandedRows(results.map((_, index) => index)); // Expand all rows
+                        }
+                    }}
+                >
+                    {expandedRows.length > 0 ? 'Collapse All' : 'Expand All'}
+                </button>
+            </div>
 
-    {/* Make the table scrollable on mobile */}
-    <div className="overflow-x-auto">
-        <table className="table-auto w-full text-left font-mono">
-            <thead>
-                <tr className="border-b border-white/20 text-white/50">
-                    <th className="rounded-l-lg px-2 py-2 w-auto font-light sm:px-4">Date</th>
-                    <th className="px-2 py-2 w-auto font-light sm:px-4">Invoice ID</th>
-                    <th className="px-2 py-2 w-auto font-light sm:px-4">NAS Location</th>
-                    <th className="px-2 py-2 w-auto font-light sm:px-4">Total</th>
-                    <th className="px-2 py-2 w-auto font-light sm:px-4">Status</th>
-                    <th className="rounded-r-lg px-2 py-2 w-auto font-light sm:px-4">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {results.map((result, index) => (
-                    <React.Fragment key={index}>
-                        <tr id={`row-${result.invNumber}`} className="border-b border-t border-white/20 hover:bg-white/10">
-                            <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(index)}>
-                                {result.created_at ? formatDate(result.created_at) : 'Unknown'}
-                            </td>
-                            <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(index)}>
-                                {result.total}_{result.invNumber}
-                                <button
-                                    className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCopyInvoice(`${result.total}_${result.invNumber}`, index);
-                                    }}
-                                    title="Copy invoice ID"
-                                >
-                                    {copiedInvoiceIndex === index ? (
-                                        <FaCheck className="text-green-700 p-1" size={22} />
-                                    ) : (
-                                        <div className="hover:bg-gray-300 rounded-full">
-                                            <MdContentCopy className="p-1" size={22} />
-                                        </div>
-                                    )}
-                                </button>
-                            </td>
-                            <td className="px-2 py-1 w-full cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(index)}>
-                                {result.nasLocation}
-                                <button
-                                    className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCopyNasLocation(result.nasLocation, index);
-                                    }}
-                                    title="Copy NAS location"
-                                >
-                                    {copiedNasLocationIndex === index ? (
-                                        <FaCheck className="text-green-700 p-1" size={22} />
-                                    ) : (
-                                        <div className="hover:bg-gray-300 rounded-full">
-                                            <MdContentCopy className="p-1" size={22} />
-                                        </div>
-                                    )}
-                                </button>
-                            </td>
-                            <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(index)}>
-                                {result.total}
-                            </td>
-                            <td className="px-2 py-1 w-auto border-r border-white/20 sm:px-4 relative sm:static">
-                                <button
-                                    onClick={() => setIsStatusMenuOpen(isStatusMenuOpen === index ? null : index)}
-                                    className={`rounded-full py-0 px-2 flex items-center space-x-1 ${statuses[result.invNumber] === 'Scheduled'
-                                        ? 'bg-purple-900'
-                                        : statuses[result.invNumber] === 'Posted'
-                                            ? 'bg-green-700'
-                                            : 'bg-gray-600'
-                                        } text-white`}
-                                >
-                                    <div className="flex items-center space-x-1">
-                                        <div
-                                            className={`mr-1 rounded-full h-2 w-2 ${statuses[result.invNumber] === 'Scheduled'
-                                                ? 'bg-purple-400'
+            {/* Make the table scrollable on mobile */}
+            <div className="overflow-x-auto">
+                <table className="table-auto w-full text-left font-mono">
+                    <thead>
+                        <tr className="border-b border-white/20 text-white/50">
+                            <th className="rounded-l-lg px-2 py-2 w-auto font-light sm:px-4">Date</th>
+                            <th className="px-2 py-2 w-auto font-light sm:px-4">Invoice ID</th>
+                            <th className="px-2 py-2 w-auto font-light sm:px-4">NAS Location</th>
+                            <th className="px-2 py-2 w-auto font-light sm:px-4">Total</th>
+                            <th className="px-2 py-2 w-auto font-light sm:px-4">Status</th>
+                            <th className="rounded-r-lg px-2 py-2 w-auto font-light sm:px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {results.map((result, index) => (
+                            <React.Fragment key={index}>
+                                <tr id={`row-${result.invNumber}`} className="border-b border-t border-white/20 hover:bg-white/10">
+                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(index)}>
+                                        {result.created_at ? formatDate(result.created_at) : 'Unknown'}
+                                    </td>
+                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(index)}>
+                                        {result.total}_{result.invNumber}
+                                        <button
+                                            className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleCopyInvoice(`${result.total}_${result.invNumber}`, index);
+                                            }}
+                                            title="Copy invoice ID"
+                                        >
+                                            {copiedInvoiceIndex === index ? (
+                                                <FaCheck className="text-green-700 p-1" size={22} />
+                                            ) : (
+                                                <div className="hover:bg-gray-300 rounded-full">
+                                                    <MdContentCopy className="p-1" size={22} />
+                                                </div>
+                                            )}
+                                        </button>
+                                    </td>
+                                    <td className="px-2 py-1 w-full cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(index)}>
+                                        {result.nasLocation}
+                                        <button
+                                            className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleCopyNasLocation(result.nasLocation, index);
+                                            }}
+                                            title="Copy NAS location"
+                                        >
+                                            {copiedNasLocationIndex === index ? (
+                                                <FaCheck className="text-green-700 p-1" size={22} />
+                                            ) : (
+                                                <div className="hover:bg-gray-300 rounded-full">
+                                                    <MdContentCopy className="p-1" size={22} />
+                                                </div>
+                                            )}
+                                        </button>
+                                    </td>
+                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(index)}>
+                                        {result.total}
+                                    </td>
+                                    <td className="px-2 py-1 w-auto border-r border-white/20 sm:px-4 relative sm:static">
+                                        <button
+                                            onClick={() => setIsStatusMenuOpen(isStatusMenuOpen === index ? null : index)}
+                                            className={`rounded-full py-0 px-2 flex items-center space-x-1 ${statuses[result.invNumber] === 'Scheduled'
+                                                ? 'bg-purple-900'
                                                 : statuses[result.invNumber] === 'Posted'
-                                                    ? 'bg-green-400'
-                                                    : 'bg-gray-400'
-                                                } flex-shrink-0`}
-                                        ></div>
-                                        <span>{statuses[result.invNumber] || 'Ready'}</span>
-                                    </div>
-                                </button>
+                                                    ? 'bg-green-700'
+                                                    : 'bg-gray-600'
+                                                } text-white`}
+                                        >
+                                            <div className="flex items-center space-x-1">
+                                                <div
+                                                    className={`mr-1 rounded-full h-2 w-2 ${statuses[result.invNumber] === 'Scheduled'
+                                                        ? 'bg-purple-400'
+                                                        : statuses[result.invNumber] === 'Posted'
+                                                            ? 'bg-green-400'
+                                                            : 'bg-gray-400'
+                                                        } flex-shrink-0`}
+                                                ></div>
+                                                <span>{statuses[result.invNumber] || 'Ready'}</span>
+                                            </div>
+                                        </button>
 
-                                {isStatusMenuOpen === index && (
-                                    <div
-                                        ref={dropdownRef}
-                                        className="absolute mt-2 w-max rounded-lg shadow-lg z-50 p-2 glassmorphisms"
-                                    >
-                                        <button
-                                            onClick={() => handleStatusChange(result.invNumber, 'Ready')}
-                                            className="block text-left py-0 px-2 bg-gray-600 text-white hover:bg-gray-500 rounded-full mb-2"
-                                        >
-                                            <div className="flex items-center space-x-1">
-                                                <div className="mr-1 rounded-full h-2 w-2 bg-gray-400 flex-shrink-0"></div>
-                                                <span>Ready</span>
+                                        {isStatusMenuOpen === index && (
+                                            <div
+                                                ref={dropdownRef}
+                                                className="absolute mt-2 w-max rounded-lg shadow-lg z-50 p-2 glassmorphisms"
+                                            >
+                                                <button
+                                                    onClick={() => handleStatusChange(result.invNumber, 'Ready')}
+                                                    className="block text-left py-0 px-2 bg-gray-600 text-white hover:bg-gray-500 rounded-full mb-2"
+                                                >
+                                                    <div className="flex items-center space-x-1">
+                                                        <div className="mr-1 rounded-full h-2 w-2 bg-gray-400 flex-shrink-0"></div>
+                                                        <span>Ready</span>
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusChange(result.invNumber, 'Scheduled')}
+                                                    className="block text-left py-0 px-2 bg-purple-900 text-white hover:bg-purple-700 rounded-full mb-2"
+                                                >
+                                                    <div className="flex items-center space-x-1">
+                                                        <div className="mr-1 rounded-full h-2 w-2 bg-purple-400 flex-shrink-0"></div>
+                                                        <span>Scheduled</span>
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusChange(result.invNumber, 'Posted')}
+                                                    className="block text-left py-0 px-2 bg-green-700 text-white hover:bg-green-600 rounded-full mb-1"
+                                                >
+                                                    <div className="flex items-center space-x-1">
+                                                        <div className="mr-1 rounded-full h-2 w-2 bg-green-400 flex-shrink-0"></div>
+                                                        <span>Posted</span>
+                                                    </div>
+                                                </button>
                                             </div>
+                                        )}
+                                    </td>
+                                    <td className="text-center px-2 py-1 w-auto flex items-center space-x-2 sm:px-4">
+                                        <button onClick={() => toggleRow(index)} title={expandedRows.includes(index) ? 'Collapse this row' : 'Expand this row'}>
+                                            {expandedRows.includes(index) ? (
+                                                <CiCircleMinus size={24} className="text-blue-400 hover:text-blue-500" />
+                                            ) : (
+                                                <CiCirclePlus size={24} className="text-blue-400 hover:text-blue-500" />
+                                            )}
                                         </button>
                                         <button
-                                            onClick={() => handleStatusChange(result.invNumber, 'Scheduled')}
-                                            className="block text-left py-0 px-2 bg-purple-900 text-white hover:bg-purple-700 rounded-full mb-2"
+                                            className="px-2 py-1 flex items-center text-amber-300 hover:text-amber-500"
+                                            onClick={() => handleCopySpecs(`${result.originalContent}`, index, true)}
+                                            title="Copy specs list"
                                         >
-                                            <div className="flex items-center space-x-1">
-                                                <div className="mr-1 rounded-full h-2 w-2 bg-purple-400 flex-shrink-0"></div>
-                                                <span>Scheduled</span>
-                                            </div>
+                                            {copiedIndex === index ? <MdCheckCircle className="text-green-500" size={19} /> : <MdContentCopy size={19} />}
                                         </button>
-                                        <button
-                                            onClick={() => handleStatusChange(result.invNumber, 'Posted')}
-                                            className="block text-left py-0 px-2 bg-green-700 text-white hover:bg-green-600 rounded-full mb-1"
-                                        >
-                                            <div className="flex items-center space-x-1">
-                                                <div className="mr-1 rounded-full h-2 w-2 bg-green-400 flex-shrink-0"></div>
-                                                <span>Posted</span>
-                                            </div>
+                                        <button onClick={() => handleDelete(result)} title="Delete entry">
+                                            <MdDeleteForever size={22} className="text-red-500 hover:text-red-700" />
                                         </button>
-                                    </div>
-                                )}
-                            </td>
-                            <td className="text-center px-2 py-1 w-auto flex items-center space-x-2 sm:px-4">
-                                <button onClick={() => toggleRow(index)} title={expandedRows.includes(index) ? 'Collapse this row' : 'Expand this row'}>
-                                    {expandedRows.includes(index) ? (
-                                        <CiCircleMinus size={24} className="text-blue-400 hover:text-blue-500" />
-                                    ) : (
-                                        <CiCirclePlus size={24} className="text-blue-400 hover:text-blue-500" />
-                                    )}
-                                </button>
-                                <button
-                                    className="px-2 py-1 flex items-center text-amber-300 hover:text-amber-500"
-                                    onClick={() => handleCopySpecs(`${result.originalContent}`, index, true)}
-                                    title="Copy specs list"
-                                >
-                                    {copiedIndex === index ? <MdCheckCircle className="text-green-500" size={19} /> : <MdContentCopy size={19} />}
-                                </button>
-                                <button onClick={() => handleDelete(result)} title="Delete entry">
-                                    <MdDeleteForever size={22} className="text-red-500 hover:text-red-700" />
-                                </button>
-                            </td>
-                        </tr>
+                                    </td>
+                                </tr>
 
-                        {/* Expanded Row with DetailCards */}
-                        <tr>
-                            <td colSpan={6} className="px-4 py-0">
-                                <Collapse in={expandedRows.includes(index)} unmountOnExit sx={{ height: '36', lineHeight: 2 }}>
-                                    <DetailCards
-                                        results={[result]}
-                                        onDelete={onDelete}
-                                        totalResults={totalResults}
-                                        searchedResults={searchedResults}
-                                    />
-                                </Collapse>
-                            </td>
-                        </tr>
-                    </React.Fragment>
-                ))}
-            </tbody>
-        </table>
-    </div>
-    {popupMessage && <Popup message={popupMessage} type={popupType} />}
-</div>
+                                {/* Expanded Row with DetailCards */}
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-0">
+                                        <Collapse in={expandedRows.includes(index)} unmountOnExit sx={{ height: '36', lineHeight: 2 }}>
+
+                                            <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
+                                                <DetailCards
+                                                    results={[result]}
+                                                    onDelete={onDelete}
+                                                    totalResults={totalResults}
+                                                    searchedResults={searchedResults}
+                                                />
+                                            </div>
+
+                                        </Collapse>
+                                    </td>
+                                </tr>
+                            </React.Fragment>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            {popupMessage && <Popup message={popupMessage} type={popupType} />}
+        </div>
 
     );
 };

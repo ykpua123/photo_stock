@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IoIosArrowDropleftCircle, IoIosArrowDroprightCircle  } from "react-icons/io";
+import { IoIosArrowDropleftCircle, IoIosArrowDroprightCircle } from "react-icons/io";
 
 interface PreviewCarouselProps {
     images: string[]; // Array of image URLs
@@ -22,18 +22,20 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
     const handlePrev = () => {
         setCurrentIndex((prevIndex) => Math.max(prevIndex - 3, 0)); // Scroll back by 3 images, but stop at the beginning
     };
-    
+
 
     return (
         <div className="relative w-full mx-auto flex items-center">
             {/* Previous Button */}
-            <button
-                onClick={handlePrev}
-                className="absolute left-[-35px] rounded-full text-white z-10 cursor-pointer"
-                disabled={currentIndex === 0} // Disable if at the beginning
-            >
-                 <IoIosArrowDropleftCircle size={26} className="hover:animate-bounceLeftRight" />
-            </button>
+            {currentIndex > 0 && (
+                <button
+                    onClick={handlePrev}
+                    className="absolute left-[-35px] rounded-full text-white z-10 cursor-pointer"
+                    disabled={currentIndex === 0} // Disable if at the beginning
+                >
+                    <IoIosArrowDropleftCircle size={26} className="hover:animate-bounceLeftRight" />
+                </button>
+            )}
 
             {/* Carousel Container with sliding animation */}
             <div className="w-full overflow-hidden">
@@ -41,18 +43,17 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
                     className="flex transition-transform duration-500"
                     style={{
                         transform: `translateX(-${currentIndex * 100 / 3}%)`,
-
                     }}
                 >
                     {images.map((image, index) => (
                         <div
                             key={index}
-                            className="w-1/3 flex-shrink-0 px-2" // Ensures each image takes 1/3 of the container's width
+                            className="w-1/3 flex-shrink-0 px-2" // Set overflow-visible to prevent image clipping
                         >
                             <img
                                 src={image}
                                 alt={`Preview ${index + 1}`}
-                                className="w-full h-auto cursor-pointer rounded-lg"
+                                className="w-full h-auto cursor-pointer rounded-lg border-transparent border-2 hover:border-white/60 transition-all duration-300 ease-in-out"
                                 onClick={() => onImageClick(image)} // Call the handler on image click
                             />
                         </div>
@@ -61,13 +62,15 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
             </div>
 
             {/* Next Button */}
-            <button
-                onClick={handleNext}
-                className="absolute right-[-35px] rounded-full text-white z-10 cursor-pointer"
-                disabled={currentIndex >= maxIndex} // Disable if at the end
-            >
-                <IoIosArrowDroprightCircle size={26} className="hover:animate-bounceRightLeft"/>
-            </button>
+            {currentIndex < maxIndex && (
+                <button
+                    onClick={handleNext}
+                    className="absolute right-[-35px] rounded-full text-white z-10 cursor-pointer"
+                >
+                    <IoIosArrowDroprightCircle size={26} className="hover:animate-bounceRightLeft" />
+                </button>
+            )}
+
         </div>
     );
 };

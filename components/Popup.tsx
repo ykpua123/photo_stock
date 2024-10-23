@@ -32,15 +32,16 @@ const Popup: React.FC<PopupMessageProps> = ({ message, type, duration = 3000 }) 
 
     return (
         <div
-            className={`fixed bottom-10 left-1/2 transform -translate-x-1/2 z-50 max-w-xs w-full p-4 rounded-lg shadow-lg text-white transition-opacity duration-500 ease-in-out
-            ${closing ? 'animate-fade-out' : 'animate-fade-in'} 
-            ${visible ? 'opacity-100' : 'opacity-0'} 
-            ${type === 'success' ? 'bg-green-800' : 'bg-red-700'}`}
-            style={{ minWidth: '250px' }} // Set a minimum width to make it mobile responsive
+            className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 max-w-xs w-full p-4 rounded-lg shadow-lg text-white transition-opacity duration-500 ease-in-out
+        ${visible ? 'opacity-100' : 'opacity-0'} 
+        ${type === 'success' ? 'bg-green-800' : 'bg-red-700'}`}
+            style={{
+                minWidth: '250px',
+                pointerEvents: visible ? 'auto' : 'none' // Prevent interaction during fade-out
+            }}
         >
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
-                    {/* Conditionally render icons based on type */}
                     {type === 'success' ? (
                         <MdCheckCircle className="text-white text-xl" />
                     ) : (

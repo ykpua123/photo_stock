@@ -163,7 +163,7 @@ const ResultsPage = () => {
         if (newPage > 0 && newPage <= totalPages) {
             setCurrentPage(newPage);
             localStorage.setItem('currentPage', String(newPage));
-
+            setExpandedRow(null); // Clear expandedRow when switching pages
         }
     };
 

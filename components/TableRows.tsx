@@ -30,7 +30,7 @@ interface TableRowsProps {
 }
 
 const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, searchedResults, expandedRow }) => {
-    const [expandedRows, setExpandedRows] = useState<number[]>([]);
+    const [expandedRows, setExpandedRows] = useState<string[]>([]);
     const [statuses, setStatuses] = useState<{ [invNumber: string]: string }>({}); // Use invNumber as key
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -80,20 +80,21 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     }, [results]);
 
     // Handle row toggle expansion/collapse
-    const toggleRow = (index: number) => {
-        if (expandedRows.includes(index)) {
-            setExpandedRows(expandedRows.filter(row => row !== index)); // Collapse the row if it is already expanded
+    const toggleRow = (invNumber: string) => {
+        if (expandedRows.includes(invNumber)) {
+            setExpandedRows(expandedRows.filter(row => row !== invNumber)); // Collapse the row if it is already expanded
+            setExpandedRows([]);
         } else {
-            setExpandedRows([...expandedRows, index]); // Expand the row while keeping other rows expanded
+            setExpandedRows([...expandedRows, invNumber]); // Expand the row while keeping other rows expanded
         }
     };
 
     useEffect(() => {
         if (expandedRow) {
-            const rowIndex = results.findIndex(result => result.invNumber === expandedRow);
-            if (rowIndex !== -1) {
+            const rowExists = results.some(result => result.invNumber === expandedRow);
+            if (rowExists) {
                 // If the row is found in the current page's results, expand it
-                setExpandedRows([rowIndex]);
+                setExpandedRows([expandedRow]);
                 const rowElement = document.getElementById(`row-${expandedRow}`);
                 if (rowElement) {
                     rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -243,7 +244,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                         if (expandedRows.length > 0) {
                             setExpandedRows([]); // Collapse all rows if all are expanded
                         } else {
-                            setExpandedRows(results.map((_, index) => index)); // Expand all rows
+                            setExpandedRows(results.map((result) => result.invNumber)); // Expand all rows
                         }
                     }}
                 >
@@ -268,10 +269,10 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                         {results.map((result, index) => (
                             <React.Fragment key={index}>
                                 <tr id={`row-${result.invNumber}`} className="border-b border-t border-white/20 hover:bg-white/10">
-                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(index)}>
+                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(result.invNumber)}>
                                         {result.created_at ? formatDate(result.created_at) : 'Unknown'}
                                     </td>
-                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(index)}>
+                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(result.invNumber)}>
                                         {result.total}_{result.invNumber}
                                         <button
                                             className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
@@ -290,7 +291,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                             )}
                                         </button>
                                     </td>
-                                    <td className="px-2 py-1 w-full cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(index)}>
+                                    <td className="px-2 py-1 w-full cursor-pointer border-r border-white/20 sm:px-4 group relative" onClick={() => toggleRow(result.invNumber)}>
                                         {result.nasLocation}
                                         <button
                                             className="absolute right-0 top-0 text-black bg-slate-100 ml-2 transition-opacity duration-200 ease-in-out opacity-0 group-hover:opacity-100 p-0.5 rounded-lg mt-1 mr-1 drop-shadow-xl"
@@ -309,7 +310,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                             )}
                                         </button>
                                     </td>
-                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(index)}>
+                                    <td className="px-2 py-1 w-auto cursor-pointer border-r border-white/20 sm:px-4" onClick={() => toggleRow(result.invNumber)}>
                                         {result.total}
                                     </td>
                                     <td className="px-2 py-1 w-auto border-r border-white/20 sm:px-4 relative sm:static">
@@ -371,8 +372,8 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                         )}
                                     </td>
                                     <td className="text-center px-2 py-1 w-auto flex items-center space-x-2 sm:px-4">
-                                        <button onClick={() => toggleRow(index)} title={expandedRows.includes(index) ? 'Collapse this row' : 'Expand this row'}>
-                                            {expandedRows.includes(index) ? (
+                                        <button onClick={() => toggleRow(result.invNumber)} title={expandedRows.includes(result.invNumber) ? 'Collapse this row' : 'Expand this row'}>
+                                            {expandedRows.includes(result.invNumber) ? (
                                                 <CiCircleMinus size={24} className="text-blue-400 hover:text-blue-500" />
                                             ) : (
                                                 <CiCirclePlus size={24} className="text-blue-400 hover:text-blue-500" />
@@ -394,7 +395,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                 {/* Expanded Row with DetailCards */}
                                 <tr>
                                     <td colSpan={6} className="px-4 py-0">
-                                        <Collapse in={expandedRows.includes(index)} unmountOnExit sx={{ height: '36', lineHeight: 2 }}>
+                                        <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ height: '36', lineHeight: 2 }}>
 
                                             <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
                                                 <DetailCards

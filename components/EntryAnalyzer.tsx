@@ -336,7 +336,7 @@ const EntryAnalyzer = () => {
             <div className="text-right">
                 <button
                     onClick={analyzeText}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded font-inter hover:bg-cyan-600"
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-inter hover:bg-cyan-600"
                 >
                     Submit
                 </button>
@@ -366,7 +366,7 @@ const EntryAnalyzer = () => {
 
                         <button
                             onClick={() => saveResults(analyzedResults)}
-                            className="px-4 py-2 bg-green-600 text-white rounded font-inter"
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg font-inter"
                         >
                             Save Results
                         </button>

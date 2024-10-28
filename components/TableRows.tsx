@@ -27,9 +27,11 @@ interface TableRowsProps {
     searchedResults: number;
     onDelete: (result: Result) => void;
     expandedRow?: string | null; // Prop to handle external row expansion based on invNumber
+    rowsPerPageDropdown?: JSX.Element;
+    resultsLength?: JSX.Element;
 }
 
-const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, searchedResults, expandedRow }) => {
+const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, searchedResults, expandedRow, rowsPerPageDropdown, resultsLength }) => {
     const [expandedRows, setExpandedRows] = useState<string[]>([]);
     const [statuses, setStatuses] = useState<{ [invNumber: string]: string }>({}); // Use invNumber as key
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState<number | null>(null);
@@ -83,7 +85,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const toggleRow = (invNumber: string) => {
         if (expandedRows.includes(invNumber)) {
             setExpandedRows(expandedRows.filter(row => row !== invNumber)); // Collapse the row if it is already expanded
-          
+
         } else {
             setExpandedRows([...expandedRows, invNumber]); // Expand the row while keeping other rows expanded
         }
@@ -126,7 +128,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
             });
 
             if (response.ok) {
-                localStorage.setItem('popupMessage', 'Status updated successfully');
+                localStorage.setItem('popupMessage', `[${invNumber}] Status updated successfully`);
                 localStorage.setItem('popupType', 'success');
                 localStorage.setItem('scrollPosition', String(scrollPosition));
                 localStorage.setItem('currentPage', String(currentPage));
@@ -236,21 +238,29 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
 
 
     return (
-        <div className="container mx-auto mt-6">
-            <div className="flex justify-start mb-2">
-                <button
-                    className="bg-transparent border border-white/30 hover:bg-white hover:text-black text-white/50 px-3 py-1 rounded-lg mr-2 font-mono"
-                    onClick={() => {
-                        if (expandedRows.length > 0) {
-                            setExpandedRows([]); // Collapse all rows if all are expanded
-                        } else {
-                            setExpandedRows(results.map((result) => result.invNumber)); // Expand all rows
-                        }
-                    }}
-                >
-                    {expandedRows.length > 0 ? 'Collapse All' : 'Expand All'}
-                </button>
+        <div className="container mx-auto mt-4">
+            <div className="flex justify-between mb-2 space-x-2">
+                <div className="flex space-x-2">
+                    {rowsPerPageDropdown}
+
+                    <button
+                        className="bg-black border border-white/60 hover:bg-white hover:text-black text-white/60 px-3 py-1 rounded-lg mr-2 font-mono"
+                        onClick={() => {
+                            if (expandedRows.length > 0) {
+                                setExpandedRows([]); // Collapse all rows if all are expanded
+                            } else {
+                                setExpandedRows(results.map((result) => result.invNumber)); // Expand all rows
+                            }
+                        }}
+                    >
+                        {expandedRows.length > 0 ? 'Collapse All' : 'Expand All'}
+                    </button>
+                </div>
+                <div className="flex items-center">
+                    {resultsLength}
+                </div>
             </div>
+
 
             {/* Make the table scrollable on mobile */}
             <div className="overflow-x-auto">

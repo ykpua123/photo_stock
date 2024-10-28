@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import TableRows from '@/components/TableRows';
-import PreviewCarousel from '@/components/PreviewCarousel'; // Import PreviewCarousel
+import PreviewCarousel from '@/components/PreviewCarousel';
 import { FaSearch } from 'react-icons/fa';
 import BackToTopButton from '@/components/BackToTopButton';
 import BackToBotttomButton from './BackToBottomButton';
@@ -19,56 +19,25 @@ interface Result {
 }
 
 const ResultsPage = () => {
+    const [tableKey, setTableKey] = useState(0);
     const [allResults, setAllResults] = useState<Result[]>([]);
     const [filteredResults, setFilteredResults] = useState<Result[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [resultsPerPage] = useState(10);
+    const [resultsPerPage, setResultsPerPage] = useState<number>(10);
     const [loading, setLoading] = useState(false);
     const [carouselImages, setCarouselImages] = useState<string[]>([]);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
+    const [totalCount, setTotalCount] = useState(0);
 
-    // Function to extract the date from nasLocation
-    const extractDateFromNasLocation = (nasLocation: string): Date | null => {
-        // Regex to match the pattern "241004_Photo" where "241004" is the date in yymmdd format
-        const regex = /(\d{2})(\d{2})(\d{2})_/; // Captures the year, month, and day from "241004_Photo"
-        const match = nasLocation.match(regex);
-
-        if (match) {
-            const year = parseInt(match[1], 10) + 2000; // Convert "24" to 2024 (assuming it's in the 21st century)
-            const month = parseInt(match[2], 10) - 1; // Convert "10" to a month index (0-based, so subtract 1)
-            const day = parseInt(match[3], 10); // Extract day directly from "04"
-
-            return new Date(year, month, day); // Return the full Date object
-        }
-
-        return null;
-    };
-
-
-    // Sort results by nasLocation date (newest to oldest)
-    const sortResultsByNasLocation = (data: Result[]) => {
-        return [...data].sort((a, b) => {
-            const dateA = extractDateFromNasLocation(a.nasLocation);
-            const dateB = extractDateFromNasLocation(b.nasLocation);
-
-            if (dateA && dateB) {
-                return dateB.getTime() - dateA.getTime(); // Sort newest to oldest (descending)
-            }
-
-            return 0;
-        });
-    };
-
-
-    const fetchResults = async () => {
+    const fetchResults = async (page = 1, perPage = 10, query = '') => {
         setLoading(true);
         try {
-            const response = await fetch('/api/getResults');
+            const response = await fetch(`/api/getResults?page=${page}&perPage=${perPage}&search=${encodeURIComponent(query)}`);
             const data = await response.json();
-            const sortedData = sortResultsByNasLocation(data.results || []); // Sort results when fetched
-            setAllResults(sortedData); // Save sorted results
+            setAllResults(data.results || []);
+            setTotalCount(data.totalCount);
             setLoading(false);
         } catch (error) {
             console.error("Error fetching results:", error);
@@ -76,62 +45,74 @@ const ResultsPage = () => {
         }
     };
 
+    useEffect(() => {
+        // Fetch results whenever currentPage, resultsPerPage, or debouncedSearchQuery changes
+        fetchResults(currentPage, resultsPerPage, debouncedSearchQuery);
+    }, [currentPage, resultsPerPage, debouncedSearchQuery]);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newQuery = e.target.value;
+        setSearchQuery(newQuery);
+        setTableKey(prevKey => prevKey + 1);
+        setCurrentPage(1); // Reset to page 1 on new search query
+    };
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage > 0 && newPage <= Math.ceil(totalCount / resultsPerPage)) {
+            setCurrentPage(newPage);
+            setExpandedRow(null);
+        }
+    };
+
+    const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newPerPage = parseInt(e.target.value, 10);
+        setResultsPerPage(newPerPage);
+        setCurrentPage(1); // Reset to page 1 when row count changes
+    };
 
     useEffect(() => {
-        const savedPage = localStorage.getItem('currentPage');
-        const savedSearchQuery = localStorage.getItem('searchQuery');
-        if (savedPage) {
-            setCurrentPage(Number(savedPage));
+        if (expandedRow) {
+            const rowElement = document.getElementById(`row-${expandedRow}`);
+            if (rowElement) {
+                rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
-        if (savedSearchQuery) {
-            setSearchQuery(savedSearchQuery);
-        }
-        fetchResults();
-    }, []);
+    }, [currentPage, expandedRow]);
 
     useEffect(() => {
         const applySearchFilters = () => {
+            setExpandedRow(null);
+
             if (debouncedSearchQuery) {
                 const query = debouncedSearchQuery.toLowerCase();
                 const searchTerms = query.split(' ').filter(term => term);
 
                 const filtered = allResults.filter(result => {
-                    const invNumber = result.invNumber.toLowerCase();
-                    const total = result.total.toLowerCase();
-                    const originalContent = result.originalContent.toLowerCase();
-                    const imagePath = result.imagePath.toLowerCase();
-                    const nasLocation = result.nasLocation.toLowerCase();
-                    const status = result.status.toLowerCase();
+                    const fields = [
+                        result.invNumber.toLowerCase(),
+                        result.total.toLowerCase(),
+                        result.originalContent.toLowerCase(),
+                        result.imagePath.toLowerCase(),
+                        result.nasLocation.toLowerCase(),
+                        result.status.toLowerCase()
+                    ];
 
                     return searchTerms.every(term =>
-                        invNumber.includes(term) ||
-                        total.includes(term) ||
-                        originalContent.includes(term) ||
-                        imagePath.includes(term) ||
-                        nasLocation.includes(term) ||
-                        status.includes(term)
+                        fields.some(field => field.includes(term))
                     );
                 });
 
                 setFilteredResults(filtered);
-
-                const images = filtered.map(result => result.imagePath);
-                setCarouselImages(images);
+                setCarouselImages(filtered.map(result => result.imagePath));
             } else {
                 setFilteredResults(allResults);
-                setCarouselImages([]); // Clear carousel when no search query
+                setCarouselImages([]);
             }
         };
 
         applySearchFilters();
     }, [debouncedSearchQuery, allResults]);
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newQuery = e.target.value;
-        setSearchQuery(newQuery);
-        setCurrentPage(1);
-        localStorage.setItem('searchQuery', newQuery);
-    };
 
     // **Handler for clicking an image in the carousel**
     const handleImageClick = (imagePath: string) => {
@@ -150,31 +131,8 @@ const ResultsPage = () => {
         }
     };
 
-    const indexOfLastResult = currentPage * resultsPerPage;
-    const indexOfFirstResult = indexOfLastResult - resultsPerPage;
+    const totalPages = Math.ceil(totalCount / resultsPerPage);
 
-    const currentResults = debouncedSearchQuery
-        ? filteredResults // If there is a query, show all filtered results
-        : filteredResults.slice(indexOfFirstResult, indexOfLastResult); // Otherwise, use pagination
-
-    const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
-
-    const handlePageChange = async (newPage: number) => {
-        if (newPage > 0 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-            localStorage.setItem('currentPage', String(newPage));
-            setExpandedRow(null); // Clear expandedRow when switching pages
-        }
-    };
-
-    useEffect(() => {
-        if (expandedRow) {
-            const rowElement = document.getElementById(`row-${expandedRow}`);
-            if (rowElement) {
-                rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-    }, [currentPage, expandedRow]);
 
     return (
         <div className="container mx-auto p-4">
@@ -202,31 +160,45 @@ const ResultsPage = () => {
                 </div>
             )}
 
-            <div className="-mt-4">
-                <div className="w-full flex justify-between">
-                    <h2 className="text-xl font-bold text-white-800 mt-10 font-inter">Results</h2>
-                    <div className="flex items-end space-x-2">
-                        <p className="text-sm text-white font-mono">
-                            {filteredResults.length === allResults.length
-                                ? `Total ${allResults.length} results`
-                                : `Showing ${filteredResults.length} of ${allResults.length} results`}
-                        </p>
-                    </div>
+            <div className="mt-8">
+                <div className="w-full flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-white-800 font-inter">Results</h2>
                 </div>
 
-                {currentResults.length > 0 ? (
+                {filteredResults.length > 0 ? (
                     <TableRows
-                        results={currentResults.map(result => ({
+                        key={tableKey}
+                        results={filteredResults.map(result => ({
                             ...result,
                             image: result.imagePath,
                             isSaved: true,
                         }))}
-                        totalResults={allResults.length}
+                        totalResults={totalCount}
                         searchedResults={filteredResults.length}
                         onDelete={(result) => {
                             setFilteredResults(prevResults => prevResults.filter(r => r.invNumber !== result.invNumber));
                         }}
                         expandedRow={expandedRow}
+                        rowsPerPageDropdown={(
+                            <select
+                                value={resultsPerPage}
+                                onChange={handleRowsPerPageChange}
+                                className="p-2 border border-white/60 rounded-lg bg-black text-white/60 font-mono cursor-pointer"
+                            >
+                                <option value="10">10 Rows</option>
+                                <option value="20">20 Rows</option>
+                                <option value="50">50 Rows</option>
+                                <option value="100">100 Rows</option>
+                            </select>)}
+                        resultsLength={(
+                            <div className="flex items-center space-x-6">
+                                <p className="text-s text-white font-mono">
+                                    {filteredResults.length === allResults.length
+                                        ? `Total ${totalCount} results`
+                                        : `Showing ${allResults.length} of ${totalCount} results`}
+                                </p>
+                            </div>
+                        )}
                     />
                 ) : (
                     <p className="text-white font-mono text-s">No results found</p>

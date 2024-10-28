@@ -1,9 +1,10 @@
 "use client";  // Required for client-side interaction
 import DetailCards from '@/components/DetailCards';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css'; // Import Circular Progress styles
+import Popup from './Popup';
 
 
 const EntryAnalyzer = () => {
@@ -15,8 +16,28 @@ const EntryAnalyzer = () => {
     const [uploadingProgress, setUploadingProgress] = useState<number>(0); // Track the uploading percentage
     const [currentUploadIndex, setCurrentUploadIndex] = useState<number>(0); // Track current image being uploaded
     const [isUploading, setIsUploading] = useState(false); // Track if uploading is in progress
-    // const [totalResults, setTotalResults] = useState<number>(0); // Track total results count
-    // const [searchQuery, setSearchQuery] = useState<string>(''); // Track search query
+    const [popupMessage, setPopupMessage] = useState<string | null>(null);
+    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
+    
+    // Check if there's a popup message in localStorage after reload
+    useEffect(() => {
+        const message = localStorage.getItem('popupMessage');
+        const type = localStorage.getItem('popupType');
+
+        if (message && type) {
+            setPopupMessage(message);
+            setPopupType(type as 'success' | 'error');
+
+            // Remove the message from localStorage so it doesn't persist on further reloads
+            localStorage.removeItem('popupMessage');
+            localStorage.removeItem('popupType');
+
+            // Automatically hide the popup after a few seconds
+            setTimeout(() => {
+                setPopupMessage(null);
+            }, 3000); // 3 seconds duration
+        }
+    }, []);
 
 
     // Function to handle image conversion to .webp
@@ -140,7 +161,7 @@ const EntryAnalyzer = () => {
             const requiredSpecs = ['INV#', 'CPU', 'GPU', 'CASE', 'MOBO', 'RAM', 'PSU'];
             const missingSpecs = requiredSpecs.filter(spec => !originalContent.includes(spec));
             if (missingSpecs.length > 0) {
-                errorMessage += `Missing ${missingSpecs.join(', ')}. Ensure spec list format is correct.\n`;
+                errorMessage += `Missing ${missingSpecs.join(', ')}: Ensure spec list format is correct.\n`;
             }
 
             // Return the entry with the potential error message
@@ -180,7 +201,7 @@ const EntryAnalyzer = () => {
 
         // If there are errors, alert the user and stop the save process
         if (hasErrors) {
-            alert("Please fix errors before saving");
+            alert("Please fix errors before saving!");
             return;
         }
 
@@ -207,7 +228,9 @@ const EntryAnalyzer = () => {
             });
 
             if (response.ok) {
-                alert('Results saved successfully!');
+                // alert('Results saved successfully!');
+                localStorage.setItem('popupMessage', 'Results saved successfully');
+                localStorage.setItem('popupType', 'success');
                 window.location.reload();
             } else {
                 const errorData = await response.json();
@@ -219,9 +242,10 @@ const EntryAnalyzer = () => {
                     });
 
                     setAnalyzedResults(updatedResults); // Update results with error messages
-
+                    localStorage.setItem('popupMessage', 'Failed to update status');
+                    localStorage.setItem('popupType', 'error');
                     // Show alert with all error messages
-                    alert("Entries were unable to save due to errors");
+                    // alert("Entries were unable to save due to errors");
                 }
             }
         } catch (error) {
@@ -336,7 +360,7 @@ const EntryAnalyzer = () => {
             <div className="text-right">
                 <button
                     onClick={analyzeText}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-inter hover:bg-cyan-600"
+                    className="mt-4 px-4 py-2 bg-blue-700 text-white text-m rounded-lg font-mono hover:bg-blue-600"
                 >
                     Submit
                 </button>
@@ -366,14 +390,16 @@ const EntryAnalyzer = () => {
 
                         <button
                             onClick={() => saveResults(analyzedResults)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg font-inter"
+                            className="px-4 py-2 bg-green-800 text-white font-m rounded-lg font-mono hover:bg-green-700"
                         >
                             Save Results
                         </button>
                     </div>
                 </div>
             )}
+            {popupMessage && <Popup message={popupMessage} type={popupType} />}
         </div >
+
     );
 };
 

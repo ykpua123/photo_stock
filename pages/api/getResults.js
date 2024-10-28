@@ -45,6 +45,9 @@ export default async function handler(req, res) {
     try {
         const connection = await db();
 
+        // Fetch the total count of all results in the database
+        const [[{ totalCount }]] = await connection.query(`SELECT COUNT(*) as totalCount FROM results`);
+
         // Base SQL query to fetch results
         let sqlQuery = `
             SELECT invNumber, total, originalContent, nasLocation, imagePath, status, created_at
@@ -76,8 +79,6 @@ export default async function handler(req, res) {
         // Paginate sorted results if there's no search query, otherwise return all matching results
         const paginatedResults = searchQuery ? sortedResults : sortedResults.slice(offset, offset + perPage);
 
-        // Get total count of results
-        const totalCount = sortedResults.length;
 
         connection.end();
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoIosArrowDropleftCircle, IoIosArrowDroprightCircle } from "react-icons/io";
 
 interface PreviewCarouselProps {
@@ -15,7 +15,6 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
     // Function to handle scrolling to the next set of images
     const handleNext = () => {
         setCurrentIndex((prevIndex) => Math.min(prevIndex + 3, maxIndex)); // Scroll by 3 images, but stop at the end
-
     };
 
     // Function to handle scrolling to the previous set of images
@@ -23,6 +22,10 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
         setCurrentIndex((prevIndex) => Math.max(prevIndex - 3, 0)); // Scroll back by 3 images, but stop at the beginning
     };
 
+    // Reset currentIndex to 0 whenever the images array changes
+    useEffect(() => {
+        setCurrentIndex(0);
+    }, [images]);
 
     return (
         <div className="relative w-full mx-auto flex items-center">
@@ -70,7 +73,6 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
                     <IoIosArrowDroprightCircle size={26} className="hover:animate-bounceRightLeft" />
                 </button>
             )}
-
         </div>
     );
 };

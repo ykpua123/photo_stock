@@ -30,19 +30,16 @@ export default async function handler(req, res) {
 
       const { invNumber, total, originalContent, nasLocation } = fields;
 
-      // Ensure all required fields are arrays of the same length
       if (!Array.isArray(invNumber) || !Array.isArray(total) || !Array.isArray(originalContent) || !Array.isArray(nasLocation)) {
         return res.status(400).json({ message: 'Invalid data format, expecting arrays' });
       }
 
-      // Ensure that there are no errors passed from the frontend
       if (fields.errors && fields.errors.length > 0) {
         return res.status(400).json({ message: 'Entries were unable to save due to errors.', errors: fields.errors });
       }
 
-      let imagePaths = []; // To store image paths for valid entries
+      let imagePaths = [];
 
-      // Process the images and save them
       for (let i = 0; i < invNumber.length; i++) {
         const imageFile = files.image[i];
         const fileName = `${Date.now()}_${imageFile.originalFilename}`;
@@ -50,23 +47,49 @@ export default async function handler(req, res) {
 
         try {
           fs.renameSync(imageFile.filepath, newFilePath);
-          imagePaths[i] = `/uploads/${fileName}`; // Assign the correct image path
+          imagePaths[i] = `/uploads/${fileName}`;
         } catch (error) {
           console.error("Error saving image:", error);
           return res.status(500).json({ message: 'Error saving image', error });
         }
       }
 
-      // Proceed to save valid entries to the database
+      // Combine all entry data into objects for sorting
+      const entries = invNumber.map((_, i) => ({
+        invNumber: invNumber[i],
+        total: total[i].startsWith("RM") ? total[i] : `RM${total[i]}`, // Ensure "RM" prefix for display
+        totalValue: parseFloat(total[i].replace(/[^0-9.-]+/g, '')), // Strip "RM" for sorting
+        originalContent: originalContent[i],
+        nasLocation: nasLocation[i],
+        imagePath: imagePaths[i],
+        date: (() => {
+          const match = nasLocation[i].match(/(\d{2})(\d{2})(\d{2})_/);
+          if (match) {
+            const year = parseInt(match[1], 10) + 2000;
+            const month = parseInt(match[2], 10) - 1;
+            const day = parseInt(match[3], 10);
+            return new Date(year, month, day);
+          }
+          return new Date(0); // Default to epoch date if parsing fails
+        })(),
+      }));
+
+      // Sort entries by date (newest to oldest), then by total (low to high)
+      entries.sort((a, b) => {
+        if (b.date - a.date !== 0) return b.date - a.date; // Sort by date descending
+        return a.totalValue - b.totalValue; // Sort by total ascending if dates are equal
+      });
+
+      // Proceed to save sorted entries to the database
       try {
         const connection = await db();
 
-        for (let i = 0; i < invNumber.length; i++) {
+        for (const entry of entries) {
           const query = `
             INSERT INTO results (invNumber, total, originalContent, nasLocation, imagePath)
             VALUES (?, ?, ?, ?, ?)
           `;
-          const values = [invNumber[i], total[i], originalContent[i], nasLocation[i], imagePaths[i]];
+          const values = [entry.invNumber, entry.total, entry.originalContent, entry.nasLocation, entry.imagePath];
 
           await connection.query(query, values);
         }

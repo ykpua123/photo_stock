@@ -128,7 +128,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
             });
 
             if (response.ok) {
-                localStorage.setItem('popupMessage', `[${invNumber}] Status updated successfully`);
+                localStorage.setItem('popupMessage', 'Status updated successfully');
                 localStorage.setItem('popupType', 'success');
                 localStorage.setItem('scrollPosition', String(scrollPosition));
                 localStorage.setItem('currentPage', String(currentPage));

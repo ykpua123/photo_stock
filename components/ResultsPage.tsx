@@ -193,9 +193,8 @@ const ResultsPage = () => {
                         resultsLength={(
                             <div className="flex items-center space-x-6">
                                 <p className="text-s text-white font-mono">
-                                    {filteredResults.length === allResults.length
-                                        ? `Total ${totalCount} results`
-                                        : `Showing ${allResults.length} of ${totalCount} results`}
+                                {debouncedSearchQuery
+                                        ? `Showing ${allResults.length} of ${totalCount} results` : `Total ${totalCount} results`}
                                 </p>
                             </div>
                         )}

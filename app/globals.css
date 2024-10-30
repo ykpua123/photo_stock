@@ -73,8 +73,8 @@
 } */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #000000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,6 +112,10 @@ body {
 }
 
 /* Tailwind Styles */
+
+.Toastify__toast-body {
+  @apply font-inter;
+}
 
 .app {
   @apply relative z-10 flex justify-center items-center flex-col max-w-7xl mx-auto sm:px-16 px-6;

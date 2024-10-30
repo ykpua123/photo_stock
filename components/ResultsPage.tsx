@@ -26,10 +26,11 @@ const ResultsPage = () => {
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [resultsPerPage, setResultsPerPage] = useState<number>(10);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [carouselImages, setCarouselImages] = useState<string[]>([]);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [totalCount, setTotalCount] = useState(0);
+
 
     const fetchResults = async (page = 1, perPage = 10, query = '') => {
         setLoading(true);
@@ -38,17 +39,22 @@ const ResultsPage = () => {
             const data = await response.json();
             setAllResults(data.results || []);
             setTotalCount(data.totalCount);
-            setLoading(false);
         } catch (error) {
             console.error("Error fetching results:", error);
+        } finally {
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         // Fetch results whenever currentPage, resultsPerPage, or debouncedSearchQuery changes
         fetchResults(currentPage, resultsPerPage, debouncedSearchQuery);
     }, [currentPage, resultsPerPage, debouncedSearchQuery]);
+
+    useEffect(() => {
+        localStorage.setItem('currentPage', String(currentPage));
+    }, [currentPage]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newQuery = e.target.value;
@@ -58,8 +64,10 @@ const ResultsPage = () => {
     };
 
     const handlePageChange = (newPage: number) => {
+        const scrollPosition = window.scrollY;
         if (newPage > 0 && newPage <= Math.ceil(totalCount / resultsPerPage)) {
             setCurrentPage(newPage);
+            localStorage.setItem('scrollPosition', String(scrollPosition));
             setExpandedRow(null);
         }
     };
@@ -67,7 +75,7 @@ const ResultsPage = () => {
     const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newPerPage = parseInt(e.target.value, 10);
         setResultsPerPage(newPerPage);
-        setCurrentPage(1); // Reset to page 1 when row count changes
+        setCurrentPage(1); // Reset to page 1 only on row count change
     };
 
     useEffect(() => {
@@ -133,8 +141,15 @@ const ResultsPage = () => {
 
     const totalPages = Math.ceil(totalCount / resultsPerPage);
 
+    useEffect(() => {
+        const savedPage = localStorage.getItem('currentPage');
+        if (savedPage) {
+            setCurrentPage(Number(savedPage));
+        }
+    }, []);
 
     return (
+
         <div className="container mx-auto p-4">
             <h2 className="text-2xl font-bold text-white-800 mt-10 mb-14 font-inter text-center">PC Photo Stock Details</h2>
             <h2 className="text-xl font-bold text-white-800 font-inter">Search</h2>
@@ -193,7 +208,7 @@ const ResultsPage = () => {
                         resultsLength={(
                             <div className="flex items-center space-x-6">
                                 <p className="text-s text-white font-mono">
-                                {debouncedSearchQuery
+                                    {debouncedSearchQuery
                                         ? `Showing ${allResults.length} of ${totalCount} results` : `Total ${totalCount} results`}
                                 </p>
                             </div>
@@ -236,7 +251,9 @@ const ResultsPage = () => {
                 <BackToTopButton />
                 <BackToBotttomButton />
             </div>
+
         </div>
+
     );
 };
 

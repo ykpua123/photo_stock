@@ -4,3 +4,6 @@ SELECT * FROM results;
 DESCRIBE results;
 
 
+--@block
+TRUNCATE table results;
+

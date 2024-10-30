@@ -41,3 +41,6 @@ next-env.d.ts
 
 # dist
 /.dist
+
+# dev.session.sql
+dev.session.sql

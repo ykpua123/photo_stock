@@ -324,16 +324,19 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                     </div>
 
                     <div className={`flex items-center space-x-2 ${!isBulkSelect ? 'opacity-50' : 'opacity-100'}`}>
-                        <label>Set Status: </label>
+                        <label>Set: </label>
                         <select
                             className="text-white p-2 border border-white/60 rounded-lg bg-black cursor-pointer"
                             value={bulkStatus}
+                            onClick={() => setBulkStatus("")} // Temporarily reset to allow reselecting
                             onChange={(e) => {
+                                const selectedValue = e.target.value;
                                 setBulkStatus(e.target.value);
-                                handleBulkStatusChange(e.target.value);
+                                handleBulkStatusChange(selectedValue);
                             }}
                             disabled={!isBulkSelect} // Disable when Bulk Select is off
                         >
+                            <option value="" disabled hidden>Status</option>
                             <option value="Ready">Ready</option>
                             <option value="Scheduled">Scheduled</option>
                             <option value="Posted">Posted</option>

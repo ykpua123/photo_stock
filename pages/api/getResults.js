@@ -60,13 +60,29 @@ export default async function handler(req, res) {
         // If search query is present, split it into terms and create conditions
         if (searchQuery) {
             const terms = searchQuery.split(' ').filter(Boolean);
-
+        
             terms.forEach(term => {
                 const searchPattern = `%${term}%`;
-                whereClauses.push(`(LOWER(invNumber) LIKE ? OR LOWER(total) LIKE ? OR LOWER(originalContent) LIKE ? OR LOWER(nasLocation) LIKE ? OR LOWER(status) LIKE ?)`);
-                queryParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+                whereClauses.push(`(
+                    LOWER(invNumber) LIKE ? 
+                    OR LOWER(total) LIKE ? 
+                    OR LOWER(originalContent) LIKE ? 
+                    OR LOWER(nasLocation) LIKE ? 
+                    OR LOWER(status) LIKE ? 
+                    OR DATE_FORMAT(created_at, '%d/%m/%Y') LIKE ?  -- Formats created_at to DD/MM/YYYY for search
+                    OR LOWER(CONCAT(total, '_', invNumber)) LIKE ?
+                )`);
+                queryParams.push(
+                    searchPattern, 
+                    searchPattern, 
+                    searchPattern, 
+                    searchPattern, 
+                    searchPattern, 
+                    searchPattern,  // for formatted created_at date search
+                    searchPattern   // for {total}_{invNumber} combined search
+                );
             });
-
+        
             sqlQuery += ` WHERE ` + whereClauses.join(' AND ');
         }
 

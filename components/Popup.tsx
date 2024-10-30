@@ -1,61 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import { MdCheckCircle, MdError } from 'react-icons/md'; // Import success and error icons
+import { MdCheckCircle, MdError } from 'react-icons/md';
 
-interface PopupMessageProps {
+interface PopupMessage {
+    id: number;
     message: string;
     type: 'success' | 'error';
-    duration?: number; // Optional prop for specifying the duration of the popup
 }
 
-const Popup: React.FC<PopupMessageProps> = ({ message, type, duration = 3000 }) => {
-    const [visible, setVisible] = useState(false);
-    const [closing, setClosing] = useState(false);  // To trigger fade-out transition
+interface PopupProps {
+    messages: PopupMessage[];
+    onRemove: (id: number) => void;
+    duration?: number;
+}
+
+const Popup: React.FC<PopupProps> = ({ messages, onRemove, duration = 1000 }) => {
+    const [visibleMessages, setVisibleMessages] = useState<PopupMessage[]>([]);
 
     useEffect(() => {
-        // Trigger fade-in when the component is mounted
-        setVisible(true);
+        // Limit the stack to 3 messages
+        const newMessages = messages.slice(-3);
+        setVisibleMessages(newMessages);
 
-        // Automatically fade-out after the specified duration
-        const timeout = setTimeout(() => {
-            setClosing(true);  // Start fade-out
-            setTimeout(() => setVisible(false), 500);  // Hide after fade-out completes
-        }, duration);
+        // Set up a timer to remove the oldest message if the stack exceeds 3
+        if (messages.length > 3) {
+            const oldestMessage = messages[messages.length - 4];
+            const timer = setTimeout(() => handleRemove(oldestMessage.id), duration);
+            return () => clearTimeout(timer); // Clean up the timer on unmount
+        }
+    }, [messages, duration]);
 
-        return () => clearTimeout(timeout); // Cleanup the timeout
-    }, [duration]);
-
-    // Handle manual close via close button
-    const handleClose = () => {
-        setClosing(true);  // Start fade-out
-        setTimeout(() => setVisible(false), 500);  // Hide after fade-out completes
+    const handleRemove = (id: number) => {
+        setVisibleMessages((prev) => prev.filter((msg) => msg.id !== id));
+        setTimeout(() => onRemove(id), 400); // Delay for fade-out animation sync
     };
 
     return (
-        <div
-            className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 max-w-fit w-full p-4 rounded-lg shadow-lg text-white transition-opacity duration-500 ease-in-out
-        ${visible ? 'opacity-100' : 'opacity-0'} 
-        ${type === 'success' ? 'bg-green-800' : 'bg-red-700'}`}
-            style={{
-                minWidth: '250px',
-                pointerEvents: visible ? 'auto' : 'none' // Prevent interaction during fade-out
-            }}
-        >
-            <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                    {type === 'success' ? (
-                        <MdCheckCircle size={20} className="text-white" />
-                    ) : (
-                        <MdError size={20} className="text-white" />
-                    )}
-                    <span className="font-inter font-sm">{message}</span>
-                </div>
-                <button
-                    onClick={handleClose}
-                    className="ml-4 text-white focus:outline-none hover:text-gray-300"
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 flex flex-col space-y-2">
+            {visibleMessages.map((msg, index) => (
+                <div
+                    key={msg.id}
+                    className={`max-w-fit w-full p-4 rounded-lg shadow-lg text-white transition-all duration-500 ease-out
+                        ${msg.type === 'success' ? 'bg-green-800' : 'bg-red-700'}
+                        ${index === visibleMessages.length - 1 ? 'animate-slideUp' : ''}
+                        ${index === 0 && visibleMessages.length === 3 ? 'animate-slideLeftFadeOut' : ''}
+                    `}
+                    style={{
+                        minWidth: '250px',
+                        transitionDelay: `${index * 100}ms`,
+                    }}
                 >
-                    &times;
-                </button>
-            </div>
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                            {msg.type === 'success' ? (
+                                <MdCheckCircle size={20} className="text-white" />
+                            ) : (
+                                <MdError size={20} className="text-white" />
+                            )}
+                            <span className="font-inter font-sm">{msg.message}</span>
+                        </div>
+                        <button
+                            onClick={() => handleRemove(msg.id)}
+                            className="ml-4 text-white focus:outline-none hover:text-gray-300"
+                        >
+                            &times;
+                        </button>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };

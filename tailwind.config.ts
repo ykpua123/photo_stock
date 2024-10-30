@@ -1,17 +1,20 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,html,css,mdx}",
   ],
   theme: {
     extend: {
+      boxShadow: {
+        'toast': '0px -10px 24px 14px rgba(0, 0, 0, 0.4)', // Customize shadow
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-      },fadeIn: {
+      }, fadeIn: {
         '0%': { opacity: '0' },
         '100%': { opacity: '1' },
       },
@@ -19,7 +22,7 @@ const config: Config = {
         '0%': { opacity: '1' },
         '100%': { opacity: '0' },
       },
-      
+
       keyframes: {
         bounceRightLeft: {
           '0%': { transform: 'translateX(0)' },    // Starts at current position

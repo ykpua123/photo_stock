@@ -5,6 +5,8 @@ import { useDropzone } from 'react-dropzone';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css'; // Import Circular Progress styles
 import Popup from './Popup';
+import { ToastContainer, toast, Slide, Bounce } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 const EntryAnalyzer = () => {
@@ -16,26 +18,22 @@ const EntryAnalyzer = () => {
     const [uploadingProgress, setUploadingProgress] = useState<number>(0); // Track the uploading percentage
     const [currentUploadIndex, setCurrentUploadIndex] = useState<number>(0); // Track current image being uploaded
     const [isUploading, setIsUploading] = useState(false); // Track if uploading is in progress
-    const [popupMessage, setPopupMessage] = useState<string | null>(null);
-    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
+    // const [popupMessage, setPopupMessage] = useState<string | null>(null);
+    // const [popupType, setPopupType] = useState<'success' | 'error'>('success');
     
     // Check if there's a popup message in localStorage after reload
     useEffect(() => {
-        const message = localStorage.getItem('popupMessage');
-        const type = localStorage.getItem('popupType');
+        const message = sessionStorage.getItem('popupMessage');
+        const type = sessionStorage.getItem('popupType');
 
         if (message && type) {
-            setPopupMessage(message);
-            setPopupType(type as 'success' | 'error');
-
-            // Remove the message from localStorage so it doesn't persist on further reloads
-            localStorage.removeItem('popupMessage');
-            localStorage.removeItem('popupType');
-
-            // Automatically hide the popup after a few seconds
-            setTimeout(() => {
-                setPopupMessage(null);
-            }, 3000); // 3 seconds duration
+            if (type === 'success') {
+                toast.success(message);
+            } else if (type === 'error') {
+                toast.error(message);
+            }
+            sessionStorage.removeItem('popupMessage');
+            sessionStorage.removeItem('popupType');
         }
     }, []);
 
@@ -102,83 +100,63 @@ const EntryAnalyzer = () => {
 
     // Function to scan and analyze multiple INV# and Total pairs along with corresponding data
     const analyzeText = async () => {
-        // Ensure required fields are filled
         if (!inputText || !nasLocation || images.length === 0) {
             alert('Please fill in all fields and upload images.');
             return;
         }
-
-        // Updated regex to account for an optional space after RM
+    
         const entryRegex = /INV#:\s*(\S+)[\s\S]*?Total:\s*(RM\s?[0-9,]+)/g;
-
         const matches = [...inputText.matchAll(entryRegex)];
-
-        // Fetch existing results from the database to check for duplicates
-        const existingResultsResponse = await fetch('/api/getResults', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+        const invNumbersToCheck = matches.map(match => match[1].replace(/-/g, '')); // Remove hyphens from INV#s
+    
+        // Check for existing invNumbers via the new API
+        const existingResultsResponse = await fetch('/api/checkDuplicates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invNumbers: invNumbersToCheck })
         });
-
-        const { results: existingResults } = await existingResultsResponse.json();
-
-        // Extract all invNumbers from existing results for easy comparison
-        const existingInvNumbers = existingResults.map((result: { invNumber: any; }) => result.invNumber);
-
+        
+        const { duplicates: existingInvNumbers } = await existingResultsResponse.json();
+    
         const results = await Promise.all(matches.map(async (match) => {
-            // Extract INV# and sanitize it (remove hyphens)
-            const invNumber = match[1].replace(/-/g, ''); // Remove any hyphens from INV#
-
-            // Extract Total, remove commas and ensure there is no space between RM and the number
-            const total = match[2].replace(/\s+(?=\d)|,/g, '').replace(' ', ''); // Remove spaces between RM and number
-
-            const originalContent = match[0]; // Extract full original content (including details)
-
-            // Build the {total}_{invNumber} format for matching (with sanitized INV#)
-            const formattedName = `${total}_${invNumber}`;
-
-            // Try to find a matching image for the current INV# by filename, ignoring (1) or similar
+            const invNumber = match[1].replace(/-/g, ''); // Sanitize INV#
+            const total = match[2].replace(/\s+(?=\d)|,/g, '').replace(' ', ''); // Clean total
+            const originalContent = match[0];
+    
             const assignedImage = images.find((file) => {
-                const regex = new RegExp(`${invNumber}(?:\\s*\\(\\d+\\))?`, 'i'); // Regex to match filenames with or without (1)
+                const regex = new RegExp(`${invNumber}(?:\\s*\\(\\d+\\))?`, 'i');
                 return regex.test(file.name);
             });
-
-            // Initialize an empty error message
+    
             let errorMessage = '';
-
-            // **NEW**: Check if INV# exists in the fetched results
+    
+            // Check if invNumber is in duplicates from the API response
             if (existingInvNumbers.includes(invNumber)) {
                 errorMessage += `INV#: ${invNumber} is already in the database.\n`;
             }
-
-            // Check for missing image and append error message if necessary
+    
             if (!assignedImage) {
                 errorMessage += `Missing image, ensure image filename matches INV#.\n`;
             }
-
-            // Check if required specs are present in the original content
+    
             const requiredSpecs = ['INV#', 'CPU', 'GPU', 'CASE', 'MOBO', 'RAM', 'PSU'];
             const missingSpecs = requiredSpecs.filter(spec => !originalContent.includes(spec));
             if (missingSpecs.length > 0) {
                 errorMessage += `Missing ${missingSpecs.join(', ')}: Ensure spec list format is correct.\n`;
             }
-
-            // Return the entry with the potential error message
+    
             return {
                 invNumber,
                 total,
-                originalContent: originalContent.trim(), // Keep original content, trimmed
-                nasLocation, // Store the NAS Location provided by the user
-                image: assignedImage || null, // Assign the matching image or null if no match found
-                errorMessage: errorMessage || null, // Attach error message if any, otherwise null
+                originalContent: originalContent.trim(),
+                nasLocation,
+                image: assignedImage || null,
+                errorMessage: errorMessage || null,
             };
         }));
-
-        // Set analyzed results (with potential error messages)
+    
         setAnalyzedResults(results);
     };
-
 
 
     // Handle dropped images
@@ -228,9 +206,7 @@ const EntryAnalyzer = () => {
             });
 
             if (response.ok) {
-                // alert('Results saved successfully!');
-                localStorage.setItem('popupMessage', 'Results saved successfully');
-                localStorage.setItem('popupType', 'success');
+                alert('Result(s) saved successfully!')
                 window.location.reload();
             } else {
                 const errorData = await response.json();
@@ -242,14 +218,16 @@ const EntryAnalyzer = () => {
                     });
 
                     setAnalyzedResults(updatedResults); // Update results with error messages
-                    localStorage.setItem('popupMessage', 'Failed to update status');
-                    localStorage.setItem('popupType', 'error');
-                    // Show alert with all error messages
-                    // alert("Entries were unable to save due to errors");
+                    sessionStorage.setItem('popupMessage', 'Failed to update status');
+                    sessionStorage.setItem('popupType', 'error');
+                    window.location.reload();
                 }
             }
         } catch (error) {
             console.error('Error saving results', error);
+            sessionStorage.setItem('popupMessage', 'An error occurred while saving results');
+            sessionStorage.setItem('popupType', 'error');
+            window.location.reload();
         }
     };
 
@@ -397,7 +375,19 @@ const EntryAnalyzer = () => {
                     </div>
                 </div>
             )}
-            {popupMessage && <Popup message={popupMessage} type={popupType} />}
+            {/* {popupMessage && <Popup message={popupMessage} type={popupType} />} */}
+            <ToastContainer style={{ width: "400px" }}
+                position="bottom-center"
+                autoClose={3000}
+                hideProgressBar
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                pauseOnHover
+                theme="dark"
+                transition={Bounce}
+            />
         </div >
 
     );

@@ -111,6 +111,58 @@ body {
   padding: 1rem;
 }
 
+.checkbox-wrapper {
+  display: flex;
+    align-items: center;
+    justify-content: center;
+
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.checkbox-wrapper.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.custom-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background-color: black;
+  border: 1px solid #ffffff;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.custom-checkbox:checked {
+  background-color: #204eca;
+  border: transparent;
+}
+
+.custom-checkbox:checked::before {
+  content: '✔';
+  color: white;
+  font-size: 10px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.custom-checkbox:checked::before {
+  opacity: 1;
+}
+
+.custom-checkbox:checked::before {
+  opacity: 1; /* Fade-in when checked */
+}
+
 /* Tailwind Styles */
 
 .Toastify__toast-body {

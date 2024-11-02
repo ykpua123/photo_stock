@@ -48,9 +48,13 @@ export default async function handler(req, res) {
         // Fetch the total count of all results in the database
         const [[{ totalCount }]] = await connection.query(`SELECT COUNT(*) as totalCount FROM results`);
 
+        // Escape backslashes in search query for nasLocation and other fields
+        const escapedSearch = searchQuery.replace(/\\/g, '\\\\');
+
         // Base SQL query to fetch results
         let sqlQuery = `
-            SELECT invNumber, total, originalContent, nasLocation, imagePath, status, created_at
+            SELECT invNumber, total, originalContent, nasLocation, imagePath, status, created_at,
+            DATE_FORMAT(created_at, '%d/%m/%Y') AS formatted_date  -- Format created_at for search
             FROM results
         `;
 
@@ -59,8 +63,8 @@ export default async function handler(req, res) {
 
         // If search query is present, split it into terms and create conditions
         if (searchQuery) {
-            const terms = searchQuery.split(' ').filter(Boolean);
-        
+            const terms = escapedSearch.split(' ').filter(Boolean);
+
             terms.forEach(term => {
                 const searchPattern = `%${term}%`;
                 whereClauses.push(`(
@@ -73,16 +77,16 @@ export default async function handler(req, res) {
                     OR LOWER(CONCAT(total, '_', invNumber)) LIKE ?
                 )`);
                 queryParams.push(
-                    searchPattern, 
-                    searchPattern, 
-                    searchPattern, 
-                    searchPattern, 
-                    searchPattern, 
+                    searchPattern,
+                    searchPattern,
+                    searchPattern,
+                    searchPattern,
+                    searchPattern,
                     searchPattern,  // for formatted created_at date search
                     searchPattern   // for {total}_{invNumber} combined search
                 );
             });
-        
+
             sqlQuery += ` WHERE ` + whereClauses.join(' AND ');
         }
 
@@ -94,7 +98,6 @@ export default async function handler(req, res) {
 
         // Paginate sorted results if there's no search query, otherwise return all matching results
         const paginatedResults = searchQuery ? sortedResults : sortedResults.slice(offset, offset + perPage);
-
 
         connection.end();
 

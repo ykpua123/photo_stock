@@ -90,26 +90,34 @@ const ResultsPage = () => {
     useEffect(() => {
         const applySearchFilters = () => {
             setExpandedRow(null);
-
+    
             if (debouncedSearchQuery) {
                 const query = debouncedSearchQuery.toLowerCase();
                 const searchTerms = query.split(' ').filter(term => term);
-
+    
                 const filtered = allResults.filter(result => {
+                    // Format created_at to DD/MM/YYYY
+                    const formattedDate = new Date(result.created_at).toLocaleDateString('en-MY', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                    });
+    
                     const fields = [
                         result.invNumber.toLowerCase(),
                         result.total.toLowerCase(),
                         result.originalContent.toLowerCase(),
                         result.imagePath.toLowerCase(),
                         result.nasLocation.toLowerCase(),
-                        result.status.toLowerCase()
+                        result.status.toLowerCase(),
+                        formattedDate.toLowerCase(), // Add formatted date for searching
                     ];
-
+    
                     return searchTerms.every(term =>
                         fields.some(field => field.includes(term))
                     );
                 });
-
+    
                 setFilteredResults(filtered);
                 setCarouselImages(filtered.map(result => result.imagePath));
             } else {
@@ -117,10 +125,9 @@ const ResultsPage = () => {
                 setCarouselImages([]);
             }
         };
-
+    
         applySearchFilters();
     }, [debouncedSearchQuery, allResults]);
-
 
     // **Handler for clicking an image in the carousel**
     const handleImageClick = (imagePath: string) => {

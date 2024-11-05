@@ -215,8 +215,9 @@ const ResultsPage = () => {
                         resultsLength={(
                             <div className="flex items-center space-x-6">
                                 <p className="text-s text-white font-mono">
-                                    {debouncedSearchQuery
-                                        ? `Showing ${allResults.length} of ${totalCount} results` : `Total ${totalCount} results`}
+                                    {/* {debouncedSearchQuery
+                                        ? `Showing ${allResults.length} of ${totalCount} results` : `Total ${totalCount} results`} */}
+                                        Displaying {allResults.length} of {totalCount} results
                                 </p>
                             </div>
                         )}

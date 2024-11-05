@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import getResults from "@/pages/api/getResults.js";
-import { count } from "console";
 
 // export async function GET(request: Request) {
 

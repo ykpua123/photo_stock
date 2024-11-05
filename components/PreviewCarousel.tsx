@@ -35,6 +35,11 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
     // Calculate the active page
     const activePage = Math.floor(currentIndex / imagesPerPage);
 
+    // Function to handle dot click
+    const handleDotClick = (pageIndex: number) => {
+        setCurrentIndex(pageIndex * imagesPerPage);
+    };
+
     return (
         <div className="relative w-full mx-auto flex flex-col items-center">
             <div className="w-full overflow-hidden flex items-center">
@@ -84,9 +89,9 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
                 )}
             </div>
             {/* Dotted Pagination */}
-            <div className="flex mt-6 space-x-2">
+            <div className="flex mt-6 space-x-4">
                 {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                    <div key={pageIndex} className={`w-2 h-2 rounded-full transition-colors ${pageIndex === activePage ? 'bg-white' : 'bg-gray-500'}`} />
+                    <button onClick={() => handleDotClick(pageIndex)} key={pageIndex} className={`w-2 h-2 rounded-full transition-colors ${pageIndex === activePage ? 'bg-white' : 'bg-gray-500'}`} />
                 ))}
             </div>
         </div>

@@ -285,30 +285,33 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         invNumber: string,
         isChecked: boolean,
         shiftKey: boolean
-    ) => {
-        let updatedSelections = [...selectedRows];
-
-        if (shiftKey && lastCheckedIndex !== null) {
-            const start = Math.min(lastCheckedIndex, index);
-            const end = Math.max(lastCheckedIndex, index);
-
-            for (let i = start; i <= end; i++) {
-                const inv = results[i].invNumber;
-                if (isChecked && !updatedSelections.includes(inv)) {
-                    updatedSelections.push(inv);
-                } else if (!isChecked && updatedSelections.includes(inv)) {
-                    updatedSelections = updatedSelections.filter((id) => id !== inv);
-                }
+      ) => {
+        // Only allow range selection if there is already a selected row
+        if (shiftKey && lastCheckedIndex !== null && selectedRows.length > 0) {
+          const start = Math.min(lastCheckedIndex, index);
+          const end = Math.max(lastCheckedIndex, index);
+    
+          let updatedSelections = [...selectedRows];
+    
+          for (let i = start; i <= end; i++) {
+            const inv = results[i].invNumber;
+            if (isChecked && !updatedSelections.includes(inv)) {
+              updatedSelections.push(inv);
+            } else if (!isChecked && updatedSelections.includes(inv)) {
+              updatedSelections = updatedSelections.filter((id) => id !== inv);
             }
+          }
+          setSelectedRows(updatedSelections);
         } else {
-            updatedSelections = isChecked
-                ? [...updatedSelections, invNumber]
-                : updatedSelections.filter((id) => id !== invNumber);
+          // Normal single selection
+          const updatedSelections = isChecked
+            ? [...selectedRows, invNumber]
+            : selectedRows.filter((id) => id !== invNumber);
+          setSelectedRows(updatedSelections);
         }
-
-        setSelectedRows(updatedSelections);
+    
         setLastCheckedIndex(index);
-    };
+      };
 
     return (
 

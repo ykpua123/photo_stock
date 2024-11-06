@@ -285,30 +285,30 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         invNumber: string,
         isChecked: boolean,
         shiftKey: boolean
-      ) => {
+    ) => {
         let updatedSelections = [...selectedRows];
-    
+
         if (shiftKey && lastCheckedIndex !== null) {
-          const start = Math.min(lastCheckedIndex, index);
-          const end = Math.max(lastCheckedIndex, index);
-    
-          for (let i = start; i <= end; i++) {
-            const inv = results[i].invNumber;
-            if (isChecked && !updatedSelections.includes(inv)) {
-              updatedSelections.push(inv);
-            } else if (!isChecked && updatedSelections.includes(inv)) {
-              updatedSelections = updatedSelections.filter((id) => id !== inv);
+            const start = Math.min(lastCheckedIndex, index);
+            const end = Math.max(lastCheckedIndex, index);
+
+            for (let i = start; i <= end; i++) {
+                const inv = results[i].invNumber;
+                if (isChecked && !updatedSelections.includes(inv)) {
+                    updatedSelections.push(inv);
+                } else if (!isChecked && updatedSelections.includes(inv)) {
+                    updatedSelections = updatedSelections.filter((id) => id !== inv);
+                }
             }
-          }
         } else {
-          updatedSelections = isChecked
-            ? [...updatedSelections, invNumber]
-            : updatedSelections.filter((id) => id !== invNumber);
+            updatedSelections = isChecked
+                ? [...updatedSelections, invNumber]
+                : updatedSelections.filter((id) => id !== invNumber);
         }
-    
+
         setSelectedRows(updatedSelections);
         setLastCheckedIndex(index);
-      };
+    };
 
     return (
 
@@ -334,7 +334,33 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                 {/* Second Row: Bulk Select Toggle and Set Status - Stacks only on mobile */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0 font-mono">
                     <div className="flex items-center space-x-2">
-                        <label>Bulk Select: </label>
+                        {/* Information Icon with Tooltip */}
+                        <span className="relative group ml-2">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                className="w-5 h-5 text-gray-400 cursor-pointer"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                                />
+                            </svg>
+
+                            {/* Tooltip */}
+                            <div className="border border-white font-mono absolute bottom-full left-1/2 transform -translate-x-1/2 ml-2 mb-2 hidden group-hover:block bg-black text-white text-s rounded py-3 px-4 w-96">
+                                <ul>
+                                    <li>1. Checkbox in the table header to select or deselect all rows</li><br />
+                                    <li>2. Hold shift key to select a range of checkboxes</li>
+                                </ul>
+                            </div>
+                        </span>
+                        <label>Bulk Selection: </label>
+
                         <div
                             className={`relative inline-block w-10 h-5 transition duration-200 ease-linear rounded-full cursor-pointer ${isBulkSelect ? 'bg-green-500' : 'bg-red-500'}`}
                             onClick={toggleBulkSelect}
@@ -418,12 +444,12 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                                     checked={selectedRows.includes(result.invNumber)}
                                                     onClick={(e) =>
                                                         handleRowSelection(
-                                                          index,
-                                                          result.invNumber,
-                                                          !selectedRows.includes(result.invNumber),
-                                                          (e as React.MouseEvent<HTMLInputElement>).shiftKey
+                                                            index,
+                                                            result.invNumber,
+                                                            !selectedRows.includes(result.invNumber),
+                                                            (e as React.MouseEvent<HTMLInputElement>).shiftKey
                                                         )
-                                                      }
+                                                    }
                                                 />
                                             ) : (
                                                 // Placeholder element to maintain space when checkbox is hidden

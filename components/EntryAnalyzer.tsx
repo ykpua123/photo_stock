@@ -300,7 +300,7 @@ const EntryAnalyzer = () => {
                     </svg>
 
                     {/* Tooltip */}
-                    <div className="font-mono absolute bottom-full left-1/2 transform -translate-x-1/2 ml-2 mb-2 hidden group-hover:block bg-black text-white text-s rounded py-3 px-4 w-96">
+                    <div className="border border-white font-mono absolute bottom-full left-1/2 transform -translate-x-1/2 ml-2 mb-2 hidden group-hover:block bg-black text-white text-s rounded py-3 px-4 w-96">
                         <ul>
                             <li>1. Ensure image filename & INV# match the same invoice number, e.g.: "RM10360_AG49724" & "AG497-24"</li><br />
                             <li>2. Ensure specs list is in correct format</li>

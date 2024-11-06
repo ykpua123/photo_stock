@@ -7,6 +7,7 @@ import PreviewCarousel from '@/components/PreviewCarousel';
 import { FaSearch } from 'react-icons/fa';
 import BackToTopButton from '@/components/BackToTopButton';
 import BackToBotttomButton from './BackToBottomButton';
+import CustomPagination from './Pagination';
 
 interface Result {
     invNumber: string;
@@ -90,11 +91,11 @@ const ResultsPage = () => {
     useEffect(() => {
         const applySearchFilters = () => {
             setExpandedRow(null);
-    
+
             if (debouncedSearchQuery) {
                 const query = debouncedSearchQuery.toLowerCase();
                 const searchTerms = query.split(' ').filter(term => term);
-    
+
                 const filtered = allResults.filter(result => {
                     // Format created_at to DD/MM/YYYY
                     const formattedDate = new Date(result.created_at).toLocaleDateString('en-MY', {
@@ -102,7 +103,7 @@ const ResultsPage = () => {
                         month: '2-digit',
                         day: '2-digit',
                     });
-    
+
                     const fields = [
                         result.invNumber.toLowerCase(),
                         result.total.toLowerCase(),
@@ -112,12 +113,12 @@ const ResultsPage = () => {
                         result.status.toLowerCase(),
                         formattedDate.toLowerCase(), // Add formatted date for searching
                     ];
-    
+
                     return searchTerms.every(term =>
                         fields.some(field => field.includes(term))
                     );
                 });
-    
+
                 setFilteredResults(filtered);
                 setCarouselImages(filtered.map(result => result.imagePath));
             } else {
@@ -125,7 +126,7 @@ const ResultsPage = () => {
                 setCarouselImages([]);
             }
         };
-    
+
         applySearchFilters();
     }, [debouncedSearchQuery, allResults]);
 
@@ -154,6 +155,23 @@ const ResultsPage = () => {
             setCurrentPage(Number(savedPage));
         }
     }, []);
+
+    //Pagination limiter
+    const maxVisiblePages = 5; // Maximum number of page links to display
+    let startPage = Math.max(1, currentPage - 2); // Show two pages before the current page
+    let endPage = Math.min(totalPages, currentPage + 2); // Show two pages after the current page
+
+    // Adjust startPage and endPage to ensure we show exactly maxVisiblePages if possible
+    if (totalPages <= maxVisiblePages) {
+        startPage = 1;
+        endPage = totalPages;
+    } else if (currentPage <= 3) {
+        startPage = 1;
+        endPage = maxVisiblePages;
+    } else if (currentPage > totalPages - 3) {
+        startPage = totalPages - maxVisiblePages + 1;
+        endPage = totalPages;
+    }
 
     return (
 
@@ -217,7 +235,7 @@ const ResultsPage = () => {
                                 <p className="text-s text-white font-mono">
                                     {/* {debouncedSearchQuery
                                         ? `Showing ${allResults.length} of ${totalCount} results` : `Total ${totalCount} results`} */}
-                                        Displaying {allResults.length} of {totalCount} results
+                                    Displaying {allResults.length} of {totalCount} results
                                 </p>
                             </div>
                         )}
@@ -228,30 +246,65 @@ const ResultsPage = () => {
 
                 {/* Pagination only shows if there is no search query */}
                 {!debouncedSearchQuery && (
-                    <div className="mt-4 flex justify-center items-center space-x-2 font-mono">
-                        <a
-                            className={`cursor-pointer ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-white'}`}
-                            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                        >
-                            Prev
-                        </a>
+                    // <div className="mt-4 flex justify-center items-center gap-3 font-mono">
+                    //     <div>
+                    //         <a
+                    //             className={`cursor-pointer ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-white'}`}
+                    //             onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                    //         >
+                    //             Prev
+                    //         </a>
+                    //     </div>
 
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                            <a
-                                key={page}
-                                onClick={() => handlePageChange(page)}
-                                className={`cursor-pointer rounded px-2 py-1 ${currentPage === page ? 'font-mono text-white font-bold underline' : 'text-white'}`}
-                            >
-                                {page}
-                            </a>
-                        ))}
+                    //     {/* Show the first page and ellipsis if necessary */}
+                    //     {startPage > 1 && (
+                    //         <>
+                    //             <div>
+                    //                 <a onClick={() => handlePageChange(1)} className="cursor-pointer text-white">1</a>
+                    //             </div>
+                    //             {startPage > 2 && <div className="text-white">...</div>}
+                    //         </>
+                    //     )}
 
-                        <a
-                            className={`cursor-pointer ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-white'}`}
-                            onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-                        >
-                            Next
-                        </a>
+                    //     {/* Display pages around the current page */}
+                    //     {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
+                    //         <div key={page}>
+                    //             <a
+                    //                 onClick={() => handlePageChange(page)}
+                    //                 className={`cursor-pointer rounded px-2 py-1 ${currentPage === page ? 'font-mono text-white font-bold underline' : 'text-white'}`}
+                    //             >
+                    //                 {page}
+                    //             </a>
+                    //         </div>
+                    //     ))}
+
+                    //     {/* Show the last page and ellipsis if necessary */}
+                    //     {endPage < totalPages && (
+                    //         <>
+                    //             {endPage < totalPages - 1 && <div className="text-white">...</div>}
+                    //             <div>
+                    //                 <a onClick={() => handlePageChange(totalPages)} className="cursor-pointer text-white">{totalPages}</a>
+                    //             </div>
+                    //         </>
+                    //     )}
+
+                    //     <div>
+                    //         <a
+                    //             className={`cursor-pointer ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-white'}`}
+                    //             onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                    //         >
+                    //             Next
+                    //         </a>
+                    //     </div>
+                    // </div>
+
+                    <div className="container mx-auto p-4">
+                        {/* Use the CustomPagination component */}
+                        <CustomPagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                        />
                     </div>
                 )}
             </div>

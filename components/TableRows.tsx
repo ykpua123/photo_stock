@@ -45,13 +45,12 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [copiedInvoiceIndex, setCopiedInvoiceIndex] = useState<number | null>(null); // For Invoice Number
     const [copiedNasLocationIndex, setCopiedNasLocationIndex] = useState<number | null>(null); // For NAS Location
-    // const [popupMessage, setPopupMessage] = useState<string | null>(null);
-    // const [popupType, setPopupType] = useState<'success' | 'error'>('success');
-    // const [messages, setMessages] = useState<PopupMessage[]>([]);
     const [localResults, setLocalResults] = useState<Result[]>(results);
     const [isBulkSelect, setIsBulkSelect] = useState(false);
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
     const [bulkStatus, setBulkStatus] = useState("");
+    const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
+
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -280,12 +279,36 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         setSelectedRows(e.target.checked ? results.map(result => result.invNumber) : []);
     };
 
-    const handleRowSelection = (invNumber: string) => {
-        setSelectedRows(selectedRows.includes(invNumber)
-            ? selectedRows.filter(row => row !== invNumber)
-            : [...selectedRows, invNumber]);
-    };
-
+    //checkbox selection
+    const handleRowSelection = (
+        index: number,
+        invNumber: string,
+        isChecked: boolean,
+        shiftKey: boolean
+      ) => {
+        let updatedSelections = [...selectedRows];
+    
+        if (shiftKey && lastCheckedIndex !== null) {
+          const start = Math.min(lastCheckedIndex, index);
+          const end = Math.max(lastCheckedIndex, index);
+    
+          for (let i = start; i <= end; i++) {
+            const inv = results[i].invNumber;
+            if (isChecked && !updatedSelections.includes(inv)) {
+              updatedSelections.push(inv);
+            } else if (!isChecked && updatedSelections.includes(inv)) {
+              updatedSelections = updatedSelections.filter((id) => id !== inv);
+            }
+          }
+        } else {
+          updatedSelections = isChecked
+            ? [...updatedSelections, invNumber]
+            : updatedSelections.filter((id) => id !== invNumber);
+        }
+    
+        setSelectedRows(updatedSelections);
+        setLastCheckedIndex(index);
+      };
 
     return (
 
@@ -393,7 +416,14 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                                     type="checkbox"
                                                     className="custom-checkbox"
                                                     checked={selectedRows.includes(result.invNumber)}
-                                                    onChange={() => handleRowSelection(result.invNumber)}
+                                                    onClick={(e) =>
+                                                        handleRowSelection(
+                                                          index,
+                                                          result.invNumber,
+                                                          !selectedRows.includes(result.invNumber),
+                                                          (e as React.MouseEvent<HTMLInputElement>).shiftKey
+                                                        )
+                                                      }
                                                 />
                                             ) : (
                                                 // Placeholder element to maintain space when checkbox is hidden

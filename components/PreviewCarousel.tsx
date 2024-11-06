@@ -89,9 +89,9 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
                 )}
             </div>
             {/* Dotted Pagination */}
-            <div className="flex mt-6 space-x-4">
+            <div className="flex mt-4 space-x-4 hover:bg-white/5 py-2 px-3 rounded-full cursor-pointer transition-all duration-300 ease-in-out">
                 {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                    <button onClick={() => handleDotClick(pageIndex)} key={pageIndex} className={`w-2 h-2 rounded-full transition-colors ${pageIndex === activePage ? 'bg-white' : 'bg-gray-500'}`} />
+                    <button onClick={() => handleDotClick(pageIndex)} key={pageIndex} className={`hover:bg-white w-2 h-2 rounded-full transition-colors ${pageIndex === activePage ? 'bg-white' : 'bg-gray-500'}`} />
                 ))}
             </div>
         </div>

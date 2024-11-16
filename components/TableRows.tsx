@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import DetailCards from './DetailCards';
-import Popup from './Popup';
 import { MdCheckCircle, MdContentCopy, MdDeleteForever } from "react-icons/md";
 import { FaCheck } from "react-icons/fa";
 import { CiCirclePlus, CiCircleMinus } from "react-icons/ci";
@@ -31,11 +30,7 @@ interface TableRowsProps {
     rowsPerPageDropdown?: JSX.Element;
     resultsLength?: JSX.Element;
 }
-interface PopupMessage {
-    message: string;
-    type: 'success' | 'error';
-    id: number;
-}
+
 
 const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, searchedResults, expandedRow, rowsPerPageDropdown, resultsLength }) => {
     const [expandedRows, setExpandedRows] = useState<string[]>([]);
@@ -60,26 +55,6 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
             day: 'numeric',
         });
     };
-
-    // Check if there's a popup message in localStorage after reload
-    // useEffect(() => {
-    //     const message = localStorage.getItem('popupMessage');
-    //     const type = localStorage.getItem('popupType');
-
-    //     if (message && type) {
-    //         setPopupMessage(message);
-    //         setPopupType(type as 'success' | 'error');
-
-    //         // Remove the message from localStorage so it doesn't persist on further reloads
-    //         localStorage.removeItem('popupMessage');
-    //         localStorage.removeItem('popupType');
-
-    //         // Automatically hide the popup after a few seconds
-    //         setTimeout(() => {
-    //             setPopupMessage(null);
-    //         }, 3000); // 3 seconds duration
-    //     }
-    // }, []);
 
     // Set the initial statuses state based on the `results` prop
     useEffect(() => {
@@ -285,33 +260,33 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
         invNumber: string,
         isChecked: boolean,
         shiftKey: boolean
-      ) => {
+    ) => {
         // Only allow range selection if there is already a selected row
         if (shiftKey && lastCheckedIndex !== null && selectedRows.length > 0) {
-          const start = Math.min(lastCheckedIndex, index);
-          const end = Math.max(lastCheckedIndex, index);
-    
-          let updatedSelections = [...selectedRows];
-    
-          for (let i = start; i <= end; i++) {
-            const inv = results[i].invNumber;
-            if (isChecked && !updatedSelections.includes(inv)) {
-              updatedSelections.push(inv);
-            } else if (!isChecked && updatedSelections.includes(inv)) {
-              updatedSelections = updatedSelections.filter((id) => id !== inv);
+            const start = Math.min(lastCheckedIndex, index);
+            const end = Math.max(lastCheckedIndex, index);
+
+            let updatedSelections = [...selectedRows];
+
+            for (let i = start; i <= end; i++) {
+                const inv = results[i].invNumber;
+                if (isChecked && !updatedSelections.includes(inv)) {
+                    updatedSelections.push(inv);
+                } else if (!isChecked && updatedSelections.includes(inv)) {
+                    updatedSelections = updatedSelections.filter((id) => id !== inv);
+                }
             }
-          }
-          setSelectedRows(updatedSelections);
+            setSelectedRows(updatedSelections);
         } else {
-          // Normal single selection
-          const updatedSelections = isChecked
-            ? [...selectedRows, invNumber]
-            : selectedRows.filter((id) => id !== invNumber);
-          setSelectedRows(updatedSelections);
+            // Normal single selection
+            const updatedSelections = isChecked
+                ? [...selectedRows, invNumber]
+                : selectedRows.filter((id) => id !== invNumber);
+            setSelectedRows(updatedSelections);
         }
-    
+
         setLastCheckedIndex(index);
-      };
+    };
 
     return (
 
@@ -563,7 +538,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                         )}
                                     </td>
                                     <td className="px-2 py-1 w-auto sm:px-4">
-                                        <div className="flex items-center space-x-2 pr-4">
+                                        <div className="flex items-center space-x-2 pr-3.5">
                                             <button onClick={() => toggleRow(result.invNumber)} title={expandedRows.includes(result.invNumber) ? 'Collapse this row' : 'Expand this row'}>
                                                 {expandedRows.includes(result.invNumber) ? (
                                                     <CiCircleMinus size={24} className="text-blue-400 hover:text-blue-500" />
@@ -589,8 +564,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                 {/* Expanded Row with DetailCards */}
                                 <tr>
                                     <td colSpan={6} className="px-4 py-0">
-                                        <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ width: '110%', height: '36', lineHeight: 2 }}>
-
+                                        <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ width: '111%', height: '36', lineHeight: 2 }}>
                                             <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
                                                 <DetailCards
                                                     results={[result]}
@@ -599,7 +573,6 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                                     searchedResults={searchedResults}
                                                 />
                                             </div>
-
                                         </Collapse>
                                     </td>
                                 </tr>
@@ -608,9 +581,6 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                     </tbody>
                 </table>
             </div>
-
-            {/* <Popup messages={messages} onRemove={removePopupMessage} /> */}
-            {/* {popupMessage && <Popup message={popupMessage} type={popupType} />} */}
             <ToastContainer style={{ width: "400px" }}
                 position="bottom-center"
                 autoClose={3000}

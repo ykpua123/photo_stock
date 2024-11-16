@@ -36,11 +36,53 @@ const sortResultsByNasLocationAndTotal = (data) => {
     });
 };
 
+// Preprocess the search query to handle "g.skill"/"gskill" and other patterns
+const preprocessQuery = (query) => {
+    // Check if the query seems to be for nasLocation
+    const isNasLocation = /naslocation|\\\\/.test(query); // Check for "naslocation" or literal backslashes
+    const isTotal = /\btotal\b/i.test(query);
+    const isDate = /created_at,\s*'%d\/%m\/%Y'/i.test(query);
+    const isInvoiceId = /\btotal,\s*'_',\s*invNumber\b/i.test(query);
+
+    if (isNasLocation || isTotal || isDate || isInvoiceId) {
+        // If it's a nasLocation query, skip further replacements
+        return query.trim();
+    }
+
+    return query
+        // Replace "gskill" with "g.skill" for consistent searching
+        .replace(/\bgskill\b/gi, 'g.skill')
+
+        // Remove specific prefixes
+        .replace(/\b(speaker|accessories|monitor & accessories|powersupply (psu)|peripherals|gaming chair|gaming desk|software (optional)|optical drive|networking (wifi receiver)|networking (wifi router)|amd ryzen prcessor|intel processor|psu|ram|ssd|hdd|os|powersupplyunit|motherboard (intel)|motherboard (amd)|cooler|graphic card|case):\s*/gi, '')
+
+        // Remove "| RM XX" pattern, case insensitive
+        .replace(/\s?\|\s?rm\s?\d+\b/gi, '')
+
+        // Remove "7 YEARS WARRANTY" or similar patterns
+        .replace(/\b\d+\s?years?\s?warranty\b/gi, '')
+
+        // Remove anything inside square brackets, including brackets
+        .replace(/\s?\[.*?\]\s?/g, '')
+
+        // Replace multiple spaces with a single space
+        .replace(/\s+/g, ' ')
+
+        // Remove descriptive words
+        .replace(/\b(Dual Chamber|Touchscreen|ATX Case|with|Cooling|Matte)\b/gi, '')
+
+        // Trim any extra whitespace
+        .trim();
+};
+
 export default async function handler(req, res) {
     const page = parseInt(req.query.page, 10) || 1;
     const perPage = parseInt(req.query.perPage, 10) || 10;
     const offset = (page - 1) * perPage;
-    const searchQuery = req.query.search ? req.query.search.toLowerCase() : '';
+    let searchQuery = req.query.search ? req.query.search.toLowerCase() : '';
+
+    // Preprocess the search query to handle specific patterns
+    searchQuery = preprocessQuery(searchQuery);
 
     try {
         const connection = await db();
@@ -63,28 +105,37 @@ export default async function handler(req, res) {
 
         // If search query is present, split it into terms and create conditions
         if (searchQuery) {
-            const terms = escapedSearch.split(' ').filter(Boolean);
+            const terms = escapedSearch.split(' ').filter(term => term && term !== "core");
 
             terms.forEach(term => {
-                const searchPattern = `%${term}%`;
-                whereClauses.push(`(
-                    LOWER(invNumber) LIKE ? 
-                    OR LOWER(total) LIKE ? 
-                    OR LOWER(originalContent) LIKE ? 
-                    OR LOWER(nasLocation) LIKE ? 
-                    OR LOWER(status) LIKE ? 
-                    OR DATE_FORMAT(created_at, '%d/%m/%Y') LIKE ?  -- Formats created_at to DD/MM/YYYY for search
-                    OR LOWER(CONCAT(total, '_', invNumber)) LIKE ?
-                )`);
-                queryParams.push(
-                    searchPattern,
-                    searchPattern,
-                    searchPattern,
-                    searchPattern,
-                    searchPattern,
-                    searchPattern,  // for formatted created_at date search
-                    searchPattern   // for {total}_{invNumber} combined search
-                );
+                // Special handling for "g.skill" or "gskill" search terms
+                if (term === "g.skill" || term === "gskill") {
+                    whereClauses.push(`(
+                        LOWER(originalContent) LIKE ? OR LOWER(originalContent) LIKE ?
+                    )`);
+                    queryParams.push(`%gskill%`, `%g.skill%`);
+                } else {
+                    // Handle other terms, both numeric and non-numeric
+                    const searchPattern = `%${term}%`;
+                    whereClauses.push(`(
+                        LOWER(invNumber) LIKE ? 
+                        OR LOWER(total) LIKE ? 
+                        OR LOWER(originalContent) LIKE ? 
+                        OR LOWER(nasLocation) LIKE ? 
+                        OR LOWER(status) LIKE ? 
+                        OR DATE_FORMAT(created_at, '%d/%m/%Y') LIKE ?  -- Formats created_at to DD/MM/YYYY for search
+                        OR LOWER(CONCAT(total, '_', invNumber)) LIKE ?
+                    )`);
+                    queryParams.push(
+                        searchPattern,
+                        searchPattern,
+                        searchPattern,
+                        searchPattern,
+                        searchPattern,
+                        searchPattern,
+                        searchPattern
+                    );
+                }
             });
 
             sqlQuery += ` WHERE ` + whereClauses.join(' AND ');

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
 import TableRows from '@/components/TableRows';
 import PreviewCarousel from '@/components/PreviewCarousel';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 import BackToTopButton from '@/components/BackToTopButton';
 import BackToBotttomButton from './BackToBottomButton';
 import CustomPagination from './Pagination';
@@ -27,7 +27,7 @@ const ResultsPage = () => {
     const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [resultsPerPage, setResultsPerPage] = useState<number>(10);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [carouselImages, setCarouselImages] = useState<string[]>([]);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [totalCount, setTotalCount] = useState(0);
@@ -58,11 +58,46 @@ const ResultsPage = () => {
     }, [currentPage]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newQuery = e.target.value;
+        const newQuery = e.target.value
+        setLoading(true);
         setSearchQuery(newQuery);
+        setExpandedRow(null);
         setTableKey(prevKey => prevKey + 1);
         setCurrentPage(1); // Reset to page 1 on new search query
+
+        // Simulate an API call or search processing delay
+        setTimeout(() => {
+            setLoading(false); // Set loading to false after results are ready
+        }, 1000); // Adjust delay as needed
+
     };
+
+    const clearSearch = () => {
+        setSearchQuery('');
+        setLoading(false);
+        setExpandedRow(null);
+        setTableKey(prevKey => prevKey + 1); // This will re-render the component with a new key
+    };
+
+    // Add event listener for "Esc" key
+    useEffect(() => {
+        const handleKeyDown = (e: { key: string; }) => {
+            if (e.key === 'Escape') {
+                clearSearch();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        setExpandedRow(null);
+        setTableKey(prevKey => prevKey + 1);
+
+        // Cleanup the event listener on component unmount
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+
+    }, []);
+
 
     const handlePageChange = (newPage: number) => {
         const scrollPosition = window.scrollY;
@@ -70,6 +105,7 @@ const ResultsPage = () => {
             setCurrentPage(newPage);
             localStorage.setItem('scrollPosition', String(scrollPosition));
             setExpandedRow(null);
+            setTableKey(prevKey => prevKey + 1);
         }
     };
 
@@ -77,6 +113,8 @@ const ResultsPage = () => {
         const newPerPage = parseInt(e.target.value, 10);
         setResultsPerPage(newPerPage);
         setCurrentPage(1); // Reset to page 1 only on row count change
+        setExpandedRow(null);
+        setTableKey(prevKey => prevKey + 1);
     };
 
     useEffect(() => {
@@ -88,13 +126,40 @@ const ResultsPage = () => {
         }
     }, [currentPage, expandedRow]);
 
+    const preprocessQuery = (query: string) => {
+        return query
+            // Remove specific prefixes
+            .replace(/\b(speaker|accessories|monitor & accessories|powersupply (psu)|peripherals|gaming chair|gaming desk|software (optional)|optical drive|networking (wifi receiver)|networking (wifi router)|amd ryzen prcessor|intel processor|psu|ram|ssd|hdd|os|powersupplyunit|motherboard (intel)|motherboard (amd)|cooler|graphic card|case):\s*/gi, '')
+
+            // Remove "| RM XX" pattern, case insensitive
+            .replace(/\s?\|\s?rm\s?\d+\b/gi, '')
+
+            // Remove "7 YEARS WARRANTY" or similar patterns
+            .replace(/\b\d+\s?years?\s?warranty\b/gi, '')
+
+            // Remove anything inside square brackets, including brackets
+            .replace(/\s?\[.*?\]\s?/g, '')
+
+            // Replace multiple spaces with a single space
+            .replace(/\s+/g, ' ')
+
+            // Remove descriptive words
+            .replace(/\b(Dual Chamber|Touchscreen|ATX Case|with|Cooling|Matte)\b/gi, '')
+
+            // Trim any extra whitespace
+            .trim();
+    };
     useEffect(() => {
         const applySearchFilters = () => {
             setExpandedRow(null);
 
             if (debouncedSearchQuery) {
-                const query = debouncedSearchQuery.toLowerCase();
-                const searchTerms = query.split(' ').filter(term => term);
+                const cleanedQuery = preprocessQuery(debouncedSearchQuery.toLowerCase());
+
+                const quotedTerms = cleanedQuery.match(/"[^"]+"|[^" ]+/g) || [];
+                const searchTerms = quotedTerms.map(term =>
+                    term.replace(/"/g, '')
+                ).filter(term => term && term !== "core");
 
                 const filtered = allResults.filter(result => {
                     // Format created_at to DD/MM/YYYY
@@ -111,12 +176,18 @@ const ResultsPage = () => {
                         result.imagePath.toLowerCase(),
                         result.nasLocation.toLowerCase(),
                         result.status.toLowerCase(),
-                        formattedDate.toLowerCase(), // Add formatted date for searching
+                        formattedDate.toLowerCase(),
                     ];
 
-                    return searchTerms.every(term =>
-                        fields.some(field => field.includes(term))
-                    );
+                    // Adjust filtering to handle both "gskill" and "g.skill" variations
+                    return searchTerms.every(term => {
+                        return fields.some(field => {
+                            if (term === "gskill" || term === "g.skill") {
+                                return field.includes("gskill") || field.includes("g.skill");
+                            }
+                            return field.includes(term);
+                        });
+                    });
                 });
 
                 setFilteredResults(filtered);
@@ -133,13 +204,21 @@ const ResultsPage = () => {
     // **Handler for clicking an image in the carousel**
     const handleImageClick = (imagePath: string) => {
         const matchedResult = allResults.find(result => result.imagePath === imagePath);
-
+    
         if (matchedResult) {
             const resultIndex = allResults.findIndex(result => result.invNumber === matchedResult.invNumber);
             const newPage = Math.floor(resultIndex / resultsPerPage) + 1;
-
-            setExpandedRow(matchedResult.invNumber);
-
+    
+            // Collapse the currently expanded row if it matches the clicked imagePath
+            if (expandedRow === matchedResult.invNumber) {
+                setExpandedRow(null); // Collapse the row first
+                setTimeout(() => {
+                    setExpandedRow(matchedResult.invNumber); // Re-expand the row after a brief delay
+                }, 0); // Use a small timeout to ensure state update
+            } else {
+                setExpandedRow(matchedResult.invNumber);
+            }
+    
             if (newPage !== currentPage) {
                 setCurrentPage(newPage);
                 localStorage.setItem('currentPage', String(newPage));
@@ -156,23 +235,6 @@ const ResultsPage = () => {
         }
     }, []);
 
-    //Pagination limiter
-    const maxVisiblePages = 5; // Maximum number of page links to display
-    let startPage = Math.max(1, currentPage - 2); // Show two pages before the current page
-    let endPage = Math.min(totalPages, currentPage + 2); // Show two pages after the current page
-
-    // Adjust startPage and endPage to ensure we show exactly maxVisiblePages if possible
-    if (totalPages <= maxVisiblePages) {
-        startPage = 1;
-        endPage = totalPages;
-    } else if (currentPage <= 3) {
-        startPage = 1;
-        endPage = maxVisiblePages;
-    } else if (currentPage > totalPages - 3) {
-        startPage = totalPages - maxVisiblePages + 1;
-        endPage = totalPages;
-    }
-
     return (
 
         <div className="container mx-auto p-4">
@@ -182,12 +244,27 @@ const ResultsPage = () => {
                 <div className="relative">
                     <input
                         type="text"
-                        className="w-full p-2 border border-white/60 rounded-lg mt-4 font-mono text-amber-300 bg-black"
-                        placeholder="Search by invoice ID, invoice #, specs, total, image name, NAS location..."
+                        className="w-full py-2 pl-2 pr-16 border border-white/60 rounded-lg mt-4 font-mono text-amber-300 bg-black"
+                        placeholder="Search by Invoice, Specs, Total, NAS location..."
                         value={searchQuery}
                         onChange={handleSearchChange}
                     />
-                    <FaSearch className="absolute right-3 top-9 transform -translate-y-1/2 text-white" />
+                    {/* Search Icon or Loading Dots */}
+                    {loading ? (
+                        <span className="absolute right-3 top-9 transform -translate-y-1/2 text-white">
+                            <span className="animate-pulse">•••</span> {/* Loading dots */}
+                        </span>
+                    ) : (
+                        <FaSearch className="cursor-pointer absolute right-3 top-9 transform -translate-y-1/2 text-white" />
+                    )}
+
+                    {/* Clear "X" Button */}
+                    {searchQuery && (
+                        <FaTimes
+                            className="absolute right-10 top-9 transform -translate-y-1/2 text-white cursor-pointer"
+                            onClick={clearSearch}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -246,58 +323,6 @@ const ResultsPage = () => {
 
                 {/* Pagination only shows if there is no search query */}
                 {!debouncedSearchQuery && (
-                    // <div className="mt-4 flex justify-center items-center gap-3 font-mono">
-                    //     <div>
-                    //         <a
-                    //             className={`cursor-pointer ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-white'}`}
-                    //             onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                    //         >
-                    //             Prev
-                    //         </a>
-                    //     </div>
-
-                    //     {/* Show the first page and ellipsis if necessary */}
-                    //     {startPage > 1 && (
-                    //         <>
-                    //             <div>
-                    //                 <a onClick={() => handlePageChange(1)} className="cursor-pointer text-white">1</a>
-                    //             </div>
-                    //             {startPage > 2 && <div className="text-white">...</div>}
-                    //         </>
-                    //     )}
-
-                    //     {/* Display pages around the current page */}
-                    //     {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(page => (
-                    //         <div key={page}>
-                    //             <a
-                    //                 onClick={() => handlePageChange(page)}
-                    //                 className={`cursor-pointer rounded px-2 py-1 ${currentPage === page ? 'font-mono text-white font-bold underline' : 'text-white'}`}
-                    //             >
-                    //                 {page}
-                    //             </a>
-                    //         </div>
-                    //     ))}
-
-                    //     {/* Show the last page and ellipsis if necessary */}
-                    //     {endPage < totalPages && (
-                    //         <>
-                    //             {endPage < totalPages - 1 && <div className="text-white">...</div>}
-                    //             <div>
-                    //                 <a onClick={() => handlePageChange(totalPages)} className="cursor-pointer text-white">{totalPages}</a>
-                    //             </div>
-                    //         </>
-                    //     )}
-
-                    //     <div>
-                    //         <a
-                    //             className={`cursor-pointer ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-white'}`}
-                    //             onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-                    //         >
-                    //             Next
-                    //         </a>
-                    //     </div>
-                    // </div>
-
                     <div className="container mx-auto p-4">
                         {/* Use the CustomPagination component */}
                         <CustomPagination

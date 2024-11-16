@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css'; // Import Circular Progress styles
-import Popup from './Popup';
 import { ToastContainer, toast, Slide, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -18,9 +17,7 @@ const EntryAnalyzer = () => {
     const [uploadingProgress, setUploadingProgress] = useState<number>(0); // Track the uploading percentage
     const [currentUploadIndex, setCurrentUploadIndex] = useState<number>(0); // Track current image being uploaded
     const [isUploading, setIsUploading] = useState(false); // Track if uploading is in progress
-    // const [popupMessage, setPopupMessage] = useState<string | null>(null);
-    // const [popupType, setPopupType] = useState<'success' | 'error'>('success');
-    
+
     // Check if there's a popup message in localStorage after reload
     useEffect(() => {
         const message = sessionStorage.getItem('popupMessage');
@@ -97,54 +94,69 @@ const EntryAnalyzer = () => {
     };
 
 
-
     // Function to scan and analyze multiple INV# and Total pairs along with corresponding data
     const analyzeText = async () => {
         if (!inputText || !nasLocation || images.length === 0) {
             alert('Please fill in all fields and upload images.');
             return;
         }
-    
-        const entryRegex = /INV#:\s*(\S+)[\s\S]*?Total:\s*(RM\s?[0-9,]+)/g;
+
+        const entryRegex = /INV#:\s*(\S*)[\s\S]*?Total\s*:\s*(RM\s?[0-9,]+)/gi;
         const matches = [...inputText.matchAll(entryRegex)];
-        const invNumbersToCheck = matches.map(match => match[1].replace(/-/g, '')); // Remove hyphens from INV#s
-    
-        // Check for existing invNumbers via the new API
-        const existingResultsResponse = await fetch('/api/checkDuplicates', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ invNumbers: invNumbersToCheck })
-        });
-        
-        const { duplicates: existingInvNumbers } = await existingResultsResponse.json();
-    
+        const invNumbersToCheck = matches
+            .map(match => match[1].replace(/-/g, ''))
+            .filter(inv => inv); // Filter out empty INV# values
+
+        let existingInvNumbers = [];
+
+        // Only check duplicates if there are valid INV# values
+        if (invNumbersToCheck.length > 0) {
+            const existingResultsResponse = await fetch('/api/checkDuplicates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invNumbers: invNumbersToCheck })
+            });
+
+            if (existingResultsResponse.ok) {
+                const { duplicates } = await existingResultsResponse.json();
+                existingInvNumbers = duplicates;
+            } else {
+                console.error('Error checking duplicates:', await existingResultsResponse.json());
+            }
+        }
+
         const results = await Promise.all(matches.map(async (match) => {
             const invNumber = match[1].replace(/-/g, ''); // Sanitize INV#
             const total = match[2].replace(/\s+(?=\d)|,/g, '').replace(' ', ''); // Clean total
-            const originalContent = match[0];
-    
+            const originalContent = match[0]
+                .replace(/Total\s*:\s*/i, "Total: ")
+                .replace(/(?<=RAM:\s*)GSKILL/i, "G.SKILL")
+                .replace(/(?<=CPU:\s*)INTEL(?!\s+CORE)/i, "INTEL CORE");
             const assignedImage = images.find((file) => {
                 const regex = new RegExp(`${invNumber}(?:\\s*\\(\\d+\\))?`, 'i');
                 return regex.test(file.name);
             });
-    
+
             let errorMessage = '';
-    
-            // Check if invNumber is in duplicates from the API response
-            if (existingInvNumbers.includes(invNumber)) {
+
+            // Error if INV# is missing or empty
+            if (!invNumber) {
+                errorMessage += `Missing or empty INV#: Ensure that the invoice number is provided.\n`;
+            } else if (existingInvNumbers.includes(invNumber)) {
+                // Check if invNumber is in duplicates from the API response
                 errorMessage += `INV#: ${invNumber} is already in the database.\n`;
             }
-    
+
             if (!assignedImage) {
                 errorMessage += `Missing image, ensure image filename matches INV#.\n`;
             }
-    
+
             const requiredSpecs = ['INV#', 'CPU', 'GPU', 'CASE', 'MOBO', 'RAM', 'PSU'];
             const missingSpecs = requiredSpecs.filter(spec => !originalContent.includes(spec));
             if (missingSpecs.length > 0) {
                 errorMessage += `Missing ${missingSpecs.join(', ')}: Ensure spec list format is correct.\n`;
             }
-    
+
             return {
                 invNumber,
                 total,
@@ -154,7 +166,7 @@ const EntryAnalyzer = () => {
                 errorMessage: errorMessage || null,
             };
         }));
-    
+
         setAnalyzedResults(results);
     };
 
@@ -230,7 +242,6 @@ const EntryAnalyzer = () => {
             window.location.reload();
         }
     };
-
 
     return (
         <div className="container mx-auto p-4 mt-12">
@@ -355,8 +366,6 @@ const EntryAnalyzer = () => {
                             isSaved: false, // Mark these as unsaved entries (previews)
                         }))}
                         onDelete={(result) => setAnalyzedResults(prevResults => prevResults.filter(r => r.invNumber !== result.invNumber))} totalResults={0} searchedResults={0}
-                    // totalResults={totalResults} // Pass total result count here
-                    // searchQuery={searchQuery}   // Pass search query here
                     />
 
                     {/* Save Button and Result Count */}

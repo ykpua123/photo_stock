@@ -7,29 +7,39 @@ interface PreviewCarouselProps {
 }
 
 const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick }) => {
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState(() => {
+        const savedIndex = localStorage.getItem('carouselIndex');
+        return savedIndex ? parseInt(savedIndex, 10) : 0;
+    });
 
     const imagesPerPage = 3;
 
     // Calculate the maximum index that allows showing 3 images
     const maxIndex = Math.max(0, images.length - imagesPerPage);
 
-    //Calculate the number of pages
+    // Calculate the number of pages
     const totalPages = Math.ceil(images.length / imagesPerPage);
 
     // Function to handle scrolling to the next set of images
     const handleNext = () => {
-        setCurrentIndex((prevIndex) => Math.min(prevIndex + 3, maxIndex)); // Scroll by 3 images, but stop at the end
+        const newIndex = Math.min(currentIndex + imagesPerPage, maxIndex);
+        setCurrentIndex(newIndex); // Scroll by 3 images, but stop at the end
+        localStorage.setItem('carouselIndex', String(newIndex)); // Save to localStorage
     };
 
     // Function to handle scrolling to the previous set of images
     const handlePrev = () => {
-        setCurrentIndex((prevIndex) => Math.max(prevIndex - 3, 0)); // Scroll back by 3 images, but stop at the beginning
+        const newIndex = Math.max(currentIndex - imagesPerPage, 0); // Scroll back by 3 images, but stop at the beginning
+        setCurrentIndex(newIndex);
+        localStorage.setItem('carouselIndex', String(newIndex)); // Save to localStorage
     };
 
-    // Reset currentIndex to 0 whenever the images array changes
+    // Reset currentIndex only if the images array changes significantly
     useEffect(() => {
-        setCurrentIndex(0);
+        if (!images[currentIndex]) {
+            setCurrentIndex(0);
+            localStorage.setItem('carouselIndex', '0');
+        }
     }, [images]);
 
     // Calculate the active page
@@ -37,7 +47,9 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
 
     // Function to handle dot click
     const handleDotClick = (pageIndex: number) => {
-        setCurrentIndex(pageIndex * imagesPerPage);
+        const newIndex = pageIndex * imagesPerPage;
+        setCurrentIndex(newIndex);
+        localStorage.setItem('carouselIndex', String(newIndex)); // Save to localStorage
     };
 
     return (
@@ -59,7 +71,7 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
                     <div
                         className="flex transition-transform duration-500"
                         style={{
-                            transform: `translateX(-${currentIndex * 100 / 3}%)`,
+                            transform: `translateX(-${currentIndex * 100 / imagesPerPage}%)`,
                         }}
                     >
                         {images.map((image, index) => (

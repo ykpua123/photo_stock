@@ -8,6 +8,8 @@ import { FaSearch, FaTimes } from 'react-icons/fa';
 import BackToTopButton from '@/components/BackToTopButton';
 import BackToBotttomButton from './BackToBottomButton';
 import CustomPagination from './Pagination';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
 
 interface Result {
     invNumber: string;
@@ -204,11 +206,11 @@ const ResultsPage = () => {
     // **Handler for clicking an image in the carousel**
     const handleImageClick = (imagePath: string) => {
         const matchedResult = allResults.find(result => result.imagePath === imagePath);
-    
+
         if (matchedResult) {
             const resultIndex = allResults.findIndex(result => result.invNumber === matchedResult.invNumber);
             const newPage = Math.floor(resultIndex / resultsPerPage) + 1;
-    
+
             // Collapse the currently expanded row if it matches the clicked imagePath
             if (expandedRow === matchedResult.invNumber) {
                 setExpandedRow(null); // Collapse the row first
@@ -218,7 +220,7 @@ const ResultsPage = () => {
             } else {
                 setExpandedRow(matchedResult.invNumber);
             }
-    
+
             if (newPage !== currentPage) {
                 setCurrentPage(newPage);
                 localStorage.setItem('currentPage', String(newPage));
@@ -268,76 +270,92 @@ const ResultsPage = () => {
                 </div>
             </div>
 
-            {loading && <p className="font-mono text-s">Loading results...</p>}
+            {/* {loading && <p className="font-mono text-s">Loading results...</p>} */}
 
             {/* Display the carousel if images are found */}
-            {carouselImages.length > 0 && (
-                <div className="mb-8 mt-12">
-                    <PreviewCarousel images={carouselImages} onImageClick={handleImageClick} />
-                </div>
-            )}
-
+            <div className={`mt-8 transition-opacity duration-300 ease-in-out ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                }`}>
+                {carouselImages.length > 0 && (
+                    <div className="mb-8 mt-12">
+                        <PreviewCarousel images={carouselImages} onImageClick={handleImageClick} />
+                    </div>
+                )}
+            </div>
             <div className="mt-8">
                 <div className="w-full flex justify-between items-center">
                     <h2 className="text-xl font-bold text-white-800 font-inter">Results</h2>
                 </div>
 
-                {filteredResults.length > 0 ? (
-                    <TableRows
-                        key={tableKey}
-                        results={filteredResults.map(result => ({
-                            ...result,
-                            image: result.imagePath,
-                            isSaved: true,
-                        }))}
-                        totalResults={totalCount}
-                        searchedResults={filteredResults.length}
-                        onDelete={(result) => {
-                            setFilteredResults(prevResults => prevResults.filter(r => r.invNumber !== result.invNumber));
+                <div className="relative">
+                    {/* Backdrop for the table */}
+                    <Backdrop
+                        sx={{
+                            backgroundColor: 'transparent',
+                            color: '#fff',
+                            zIndex: (theme) => theme.zIndex.drawer + 1,
+                            position: 'absolute', // Ensure it covers only the table container
                         }}
-                        expandedRow={expandedRow}
-                        rowsPerPageDropdown={(
-                            <select
-                                value={resultsPerPage}
-                                onChange={handleRowsPerPageChange}
-                                className="p-2 border border-white/60 rounded-lg bg-black text-white/60 font-mono cursor-pointer"
-                            >
-                                <option value="10">10 Rows</option>
-                                <option value="20">20 Rows</option>
-                                <option value="50">50 Rows</option>
-                                <option value="100">100 Rows</option>
-                            </select>)}
-                        resultsLength={(
-                            <div className="flex items-center space-x-6">
-                                <p className="text-s text-white font-mono">
-                                    {/* {debouncedSearchQuery
-                                        ? `Showing ${allResults.length} of ${totalCount} results` : `Total ${totalCount} results`} */}
-                                    Displaying {allResults.length} of {totalCount} results
-                                </p>
-                            </div>
+                        open={loading} // Backdrop is visible when loading is true
+                    >
+                        <CircularProgress color="inherit" />
+                    </Backdrop>
+                    <div className={`mt-8 transition-opacity duration-300 ease-in-out ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                        }`}>
+                        {filteredResults.length > 0 ? (
+                            <TableRows
+                                key={tableKey}
+                                results={filteredResults.map(result => ({
+                                    ...result,
+                                    image: result.imagePath,
+                                    isSaved: true,
+                                }))}
+                                totalResults={totalCount}
+                                searchedResults={filteredResults.length}
+                                onDelete={(result) => {
+                                    setFilteredResults(prevResults => prevResults.filter(r => r.invNumber !== result.invNumber));
+                                }}
+                                expandedRow={expandedRow}
+                                rowsPerPageDropdown={(
+                                    <select
+                                        value={resultsPerPage}
+                                        onChange={handleRowsPerPageChange}
+                                        className="p-2 border border-white/60 rounded-lg bg-black text-white/60 font-mono cursor-pointer"
+                                    >
+                                        <option value="10">10 Rows</option>
+                                        <option value="20">20 Rows</option>
+                                        <option value="50">50 Rows</option>
+                                        <option value="100">100 Rows</option>
+                                    </select>)}
+                                resultsLength={(
+                                    <div className="flex items-center space-x-6">
+                                        <p className="text-s text-white font-mono">
+                                            Displaying {allResults.length} of {totalCount} results
+                                        </p>
+                                    </div>
+                                )}
+                            />
+                        ) : (
+                            <p className="text-white font-mono text-s -mt-6">No results found</p>
                         )}
-                    />
-                ) : (
-                    <p className="text-white font-mono text-s">No results found</p>
-                )}
-
-                {/* Pagination only shows if there is no search query */}
-                {!debouncedSearchQuery && (
-                    <div className="container mx-auto p-4">
-                        {/* Use the CustomPagination component */}
-                        <CustomPagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}
-                        />
                     </div>
-                )}
-            </div>
-            <div>
-                <BackToTopButton />
-                <BackToBotttomButton />
-            </div>
 
+                    {/* Pagination only shows if there is no search query */}
+                    {!debouncedSearchQuery && (
+                        <div className="container mx-auto p-4">
+                            {/* Use the CustomPagination component */}
+                            <CustomPagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={handlePageChange}
+                            />
+                        </div>
+                    )}
+                </div>
+                <div>
+                    <BackToTopButton />
+                    <BackToBotttomButton />
+                </div>
+            </div>
         </div>
 
     );

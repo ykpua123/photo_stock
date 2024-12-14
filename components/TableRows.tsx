@@ -290,7 +290,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
 
     return (
 
-        <div className="container mx-auto mt-4">
+        <div className="container mx-auto mt-4 text-white">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:space-x-2 mb-2">
                 {/* First Row: Rows Dropdown and Expand/Collapse - Inline on both mobile and desktop */}
                 <div className="flex space-x-2 mb-6 sm:mb-0">

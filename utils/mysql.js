@@ -15,7 +15,7 @@ const db = async () => {
         database: process.env.MYSQL_DATABASE, // Local development database
       };
 
-  return mysql.createConnection(config);
+  return mysql.createPool(config);
 };
 
 export default db;

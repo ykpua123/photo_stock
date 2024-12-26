@@ -245,7 +245,7 @@ const EntryAnalyzer = () => {
 
     return (
         <div className="container mx-auto p-4 mt-12">
-            <h2 className="text-2xl font-bold text-white-800 font-inter text-center mb-14">Upload</h2>
+            <h2 className="text-2xl font-bold text-white-800 font-inter text-center mb-14 text-white">Upload</h2>
             <label className="block text-l font-bold text-white font-inter">
                 Images Upload:
             </label>
@@ -358,7 +358,7 @@ const EntryAnalyzer = () => {
             {/* Display the Results */}
             {analyzedResults.length > 0 && (
                 <div className="mt-6">
-                    <h2 className="text-xl font-bold text-white-800 font-inter">Preview Results</h2>
+                    <h2 className="text-xl font-bold text-white-800 font-inter text-white">Preview Results</h2>
                     {/* Pass results to DetailCards */}
                     <DetailCards
                         results={analyzedResults.map(result => ({

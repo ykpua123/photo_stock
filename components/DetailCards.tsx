@@ -83,7 +83,7 @@ const DetailCards: React.FC<DetailCardsProps> = ({ results, onDelete, totalResul
                     {/* NAS Location */}
                     <div className="w-full flex justify-between items-center">
                         <div className="flex items-center">
-                            <p className="text-white-700 font-mono text-base">
+                            <p className="text-white font-mono text-base">
                                 {result.nasLocation}
                                 {/* Copy Icon for NAS Location */}
                                 <button
@@ -110,7 +110,7 @@ const DetailCards: React.FC<DetailCardsProps> = ({ results, onDelete, totalResul
             
 
                     {/* Flex container for content and image */}
-                    <div className="flex w-full md:flex-row flex-col rounded-lg p-4 mt-5 bg-neutral-900 border border-white/60 flex-col-reverse">
+                    <div className="flex w-full md:flex-row flex-col rounded-lg p-4 mt-5 bg-neutral-900 border border-white/60 flex-col-reverse text-white">
                         {/* Display the full original content and vertically align it */}
                         <div className="md:w-1/2 w-full p-2 md:px-10 flex items-center">
                             <pre className="mt-2 w-full overflow-x-auto">

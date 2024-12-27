@@ -1,71 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { IoIosArrowDropleftCircle, IoIosArrowDroprightCircle } from "react-icons/io";
+import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
+import { useDebouncedCallback } from 'use-debounce';
 
 interface PreviewCarouselProps {
     images: string[]; // Array of image URLs
     onImageClick: (image: string) => void; // Function to handle image click
 }
 
+// Memoized Image Component
+const MemoizedImage = React.memo(({ image, onImageClick }: { image: string; onImageClick: (image: string) => void }) => (
+    <img
+        loading="lazy"
+        src={image}
+        alt="Preview"
+        className="w-full h-auto cursor-pointer rounded-lg border-transparent border-2 hover:border-white/60 transition-all duration-300 ease-in-out"
+        onClick={() => onImageClick(image)}
+    />
+));
+
 const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick }) => {
-    const [currentIndex, setCurrentIndex] = useState(() => {
-        const savedIndex = localStorage.getItem('carouselIndex');
-        return savedIndex ? parseInt(savedIndex, 10) : 0;
-    });
+    const [currentIndex, setCurrentIndex] = useState(0); // Default to 0 on component mount
 
     const imagesPerPage = 3;
 
     // Calculate the maximum index that allows showing 3 images
     const maxIndex = Math.max(0, images.length - imagesPerPage);
 
-    // Calculate the number of pages
-    const totalPages = Math.ceil(images.length / imagesPerPage);
+    // Preload adjacent images
+    useEffect(() => {
+        const preloadImages = () => {
+            const adjacentImages = [
+                images[currentIndex - 1],
+                images[currentIndex],
+                images[currentIndex + 1],
+            ].filter(Boolean); // Avoid undefined entries
+
+            adjacentImages.forEach((image) => {
+                const img = new Image();
+                img.src = image;
+            });
+        };
+        preloadImages();
+    }, [currentIndex, images]);
 
     // Function to handle scrolling to the next set of images
-    const handleNext = () => {
+    const handleNext = useDebouncedCallback(() => {
         const newIndex = Math.min(currentIndex + imagesPerPage, maxIndex);
-        setCurrentIndex(newIndex); // Scroll by 3 images, but stop at the end
-        localStorage.setItem('carouselIndex', String(newIndex)); // Save to localStorage
-    };
+        setCurrentIndex(newIndex);
+    }, 200);
 
     // Function to handle scrolling to the previous set of images
-    const handlePrev = () => {
-        const newIndex = Math.max(currentIndex - imagesPerPage, 0); // Scroll back by 3 images, but stop at the beginning
+    const handlePrev = useDebouncedCallback(() => {
+        const newIndex = Math.max(currentIndex - imagesPerPage, 0);
         setCurrentIndex(newIndex);
-        localStorage.setItem('carouselIndex', String(newIndex)); // Save to localStorage
-    };
+    }, 200);
 
     // Reset currentIndex only if the images array changes significantly
     useEffect(() => {
-        if (!images[currentIndex]) {
-            setCurrentIndex(0);
-            localStorage.setItem('carouselIndex', '0');
-        }
+        setCurrentIndex(0); // Reset the index whenever the component re-renders
     }, [images]);
 
     // Calculate the active page
     const activePage = Math.floor(currentIndex / imagesPerPage);
 
-    // Function to handle dot click
-    const handleDotClick = (pageIndex: number) => {
-        const newIndex = pageIndex * imagesPerPage;
-        setCurrentIndex(newIndex);
-        localStorage.setItem('carouselIndex', String(newIndex)); // Save to localStorage
-    };
-
     return (
         <div className="relative w-full mx-auto flex flex-col items-center">
             <div className="w-full overflow-hidden flex items-center">
-                {/* Previous Button */}
-                {currentIndex > 0 && (
-                    <button
-                        onClick={handlePrev}
-                        className="absolute left-[-35px] rounded-full text-white z-10 cursor-pointer"
-                        disabled={currentIndex === 0} // Disable if at the beginning
-                    >
-                        <IoIosArrowDropleftCircle size={26} className="hover:animate-bounceLeftRight" />
-                    </button>
-                )}
-
                 {/* Carousel Container with sliding animation */}
                 <div className="w-full overflow-hidden">
                     <div
@@ -79,32 +79,28 @@ const PreviewCarousel: React.FC<PreviewCarouselProps> = ({ images, onImageClick 
                                 key={index}
                                 className="w-1/3 flex-shrink-0 px-2" // Set overflow-visible to prevent image clipping
                             >
-                                <img
-                                    src={image}
-                                    alt={`Preview ${index + 1}`}
-                                    className="w-full h-auto cursor-pointer rounded-lg border-transparent border-2 hover:border-white/60 transition-all duration-300 ease-in-out"
-                                    onClick={() => onImageClick(image)} // Call the handler on image click
-                                />
+                                <MemoizedImage image={image} onImageClick={onImageClick} />
                             </div>
                         ))}
                     </div>
                 </div>
-
-                {/* Next Button */}
-                {currentIndex < maxIndex && (
-                    <button
-                        onClick={handleNext}
-                        className="absolute right-[-35px] rounded-full text-white z-10 cursor-pointer"
-                    >
-                        <IoIosArrowDroprightCircle size={26} className="hover:animate-bounceRightLeft" />
-                    </button>
-                )}
             </div>
-            {/* Dotted Pagination */}
-            <div className="flex mt-4 space-x-4 hover:bg-white/5 py-2 px-3 rounded-full cursor-pointer transition-all duration-300 ease-in-out">
-                {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                    <button onClick={() => handleDotClick(pageIndex)} key={pageIndex} className={`hover:bg-white w-2 h-2 rounded-full transition-colors ${pageIndex === activePage ? 'bg-white' : 'bg-gray-500'}`} />
-                ))}
+            <div className="flex mt-6 space-x-4">
+                {/* Previous Button */}
+                <button
+                    onClick={handlePrev}
+                    className={`rounded-full border-2 border-gray-700 p-2 ${currentIndex === 0 ? 'text-gray-700 cursor-pointer' : 'text-white cursor-pointer'}`}
+                    disabled={currentIndex === 0} // Disable if at the beginning
+                >
+                    <IoIosArrowBack size={20} className="" />
+                </button>
+                {/* Next Button */}
+                <button
+                    onClick={handleNext}
+                    className={`rounded-full border-2 border-gray-700 p-2 ${currentIndex < maxIndex ? 'text-white cursor-pointer' : 'text-gray-700 cursor-pointer'}`}
+                >
+                    <IoIosArrowForward size={20} className="" />
+                </button>
             </div>
         </div>
     );

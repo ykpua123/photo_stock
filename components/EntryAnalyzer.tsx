@@ -36,32 +36,56 @@ const EntryAnalyzer = () => {
 
 
     // Function to handle image conversion to .webp
-    const convertToWebP = (file: File): Promise<File> => {
-        return new Promise((resolve) => {
+    const convertToWebP = (
+        file: File,
+        quality: number = 0.8,
+        targetWidth: number = 1200
+    ): Promise<File> => {
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
                 img.src = e.target?.result as string;
                 img.onload = () => {
+                    // Calculate the height to maintain the aspect ratio
+                    const aspectRatio = img.height / img.width;
+                    const targetHeight = Math.round(targetWidth * aspectRatio);
+    
+                    // Create a canvas with the new dimensions
                     const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
                     const ctx = canvas.getContext('2d');
                     if (ctx) {
-                        ctx.drawImage(img, 0, 0);
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                const webpFile = new File([blob], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' });
-                                resolve(webpFile);
-                            }
-                        }, 'image/webp');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        canvas.toBlob(
+                            (blob) => {
+                                if (blob) {
+                                    const webpFile = new File(
+                                        [blob],
+                                        file.name.replace(/\.\w+$/, '.webp'),
+                                        { type: 'image/webp' }
+                                    );
+                                    resolve(webpFile);
+                                } else {
+                                    reject(new Error('Conversion to WebP failed.'));
+                                }
+                            },
+                            'image/webp',
+                            quality // Compression quality
+                        );
+                    } else {
+                        reject(new Error('Could not get canvas context.'));
                     }
                 };
+                img.onerror = () => reject(new Error('Image loading failed.'));
             };
+            reader.onerror = () => reject(new Error('File reading failed.'));
             reader.readAsDataURL(file);
         });
     };
-
+    
+    
     // Function to handle image upload progress and simulation
     const handleUpload = async (acceptedFiles: File[]) => {
         const totalFiles = acceptedFiles.length;

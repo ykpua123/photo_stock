@@ -8,8 +8,6 @@ import { FaSearch, FaTimes } from 'react-icons/fa';
 import BackToTopButton from '@/components/BackToTopButton';
 import BackToBotttomButton from './BackToBottomButton';
 import CustomPagination from './Pagination';
-import Backdrop from '@mui/material/Backdrop';
-import CircularProgress from '@mui/material/CircularProgress';
 
 interface Result {
     invNumber: string;
@@ -33,6 +31,7 @@ const ResultsPage = () => {
     const [carouselImages, setCarouselImages] = useState<string[]>([]);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [totalCount, setTotalCount] = useState(0);
+    const [carouselKey, setCarouselKey] = useState(0);
 
 
     const fetchResults = async (page = 1, perPage = 10, query = '') => {
@@ -107,6 +106,7 @@ const ResultsPage = () => {
             setCurrentPage(newPage);
             localStorage.setItem('scrollPosition', String(scrollPosition));
             setExpandedRow(null);
+            setCarouselKey(prevKey => prevKey + 1);
             setTableKey(prevKey => prevKey + 1);
         }
     };
@@ -221,10 +221,10 @@ const ResultsPage = () => {
                 setExpandedRow(matchedResult.invNumber);
             }
 
-            if (newPage !== currentPage) {
-                setCurrentPage(newPage);
-                localStorage.setItem('currentPage', String(newPage));
-            }
+            // if (newPage !== currentPage) {
+            //     setCurrentPage(newPage);
+            //     localStorage.setItem('currentPage', String(newPage));
+            // }
         }
     };
 
@@ -277,7 +277,7 @@ const ResultsPage = () => {
                 }`}>
                 {carouselImages.length > 0 && (
                     <div className="mb-8 mt-12">
-                        <PreviewCarousel images={carouselImages} onImageClick={handleImageClick} />
+                        <PreviewCarousel images={carouselImages} onImageClick={handleImageClick} key={carouselKey} />
                     </div>
                 )}
             </div>
@@ -288,7 +288,7 @@ const ResultsPage = () => {
 
                 <div className="relative">
                     {/* Backdrop for the table */}
-                    <Backdrop
+                    {/* <Backdrop
                         sx={{
                             backgroundColor: 'transparent',
                             color: '#fff',
@@ -298,7 +298,7 @@ const ResultsPage = () => {
                         open={loading} // Backdrop is visible when loading is true
                     >
                         <CircularProgress color="inherit" />
-                    </Backdrop>
+                    </Backdrop> */}
                     <div className={`mt-8 transition-opacity duration-300 ease-in-out ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'
                         }`}>
                         {filteredResults.length > 0 ? (
@@ -340,7 +340,7 @@ const ResultsPage = () => {
                     </div>
 
                     {/* Pagination only shows if there is no search query */}
-                    {!debouncedSearchQuery && (
+                    {/* {!debouncedSearchQuery && ( */}
                         <div className="container mx-auto p-4">
                             {/* Use the CustomPagination component */}
                             <CustomPagination
@@ -349,7 +349,7 @@ const ResultsPage = () => {
                                 onPageChange={handlePageChange}
                             />
                         </div>
-                    )}
+                    {/* )} */}
                 </div>
                 <div>
                     <BackToTopButton />

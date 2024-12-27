@@ -147,12 +147,15 @@ export default async function handler(req, res) {
         // Sort results by nasLocation date and total
         const sortedResults = sortResultsByNasLocationAndTotal(results);
 
+         // Total filtered results
+         const filteredCount = sortedResults.length;
+
         // Paginate sorted results if there's no search query, otherwise return all matching results
-        const paginatedResults = searchQuery ? sortedResults : sortedResults.slice(offset, offset + perPage);
+        const paginatedResults = sortedResults.slice(offset, offset + perPage);
 
         connection.end();
 
-        res.status(200).json({ results: paginatedResults, totalCount });
+        res.status(200).json({ results: paginatedResults, totalCount: filteredCount });
     } catch (error) {
         console.error("Error fetching results:", error);
         res.status(500).json({ message: 'Error fetching results', error });

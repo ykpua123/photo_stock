@@ -240,8 +240,8 @@ const ResultsPage = () => {
     return (
 
         <div className="container mx-auto p-4">
-            <h2 className="text-2xl font-bold text-white-800 mt-10 mb-14 font-inter text-center">PC Photo Stock Details</h2>
-            <h2 className="text-xl font-bold text-white-800 font-inter">Search</h2>
+            <h2 className="text-2xl font-bold text-white mt-10 mb-14 font-inter text-center">PC Photo Stock Details</h2>
+            <h2 className="text-xl font-bold text-white font-inter">Search</h2>
             <div className="mb-4">
                 <div className="relative">
                     <input
@@ -283,7 +283,7 @@ const ResultsPage = () => {
             </div>
             <div className="mt-8">
                 <div className="w-full flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-white-800 font-inter">Results</h2>
+                    <h2 className="text-xl font-bold text-white font-inter">Results</h2>
                 </div>
 
                 <div className="relative">

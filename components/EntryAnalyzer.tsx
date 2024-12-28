@@ -50,7 +50,7 @@ const EntryAnalyzer = () => {
                     // Calculate the height to maintain the aspect ratio
                     const aspectRatio = img.height / img.width;
                     const targetHeight = Math.round(targetWidth * aspectRatio);
-    
+
                     // Create a canvas with the new dimensions
                     const canvas = document.createElement('canvas');
                     canvas.width = targetWidth;
@@ -84,8 +84,8 @@ const EntryAnalyzer = () => {
             reader.readAsDataURL(file);
         });
     };
-    
-    
+
+
     // Function to handle image upload progress and simulation
     const handleUpload = async (acceptedFiles: File[]) => {
         const totalFiles = acceptedFiles.length;
@@ -165,10 +165,16 @@ const EntryAnalyzer = () => {
 
             // Error if INV# is missing or empty
             if (!invNumber) {
-                errorMessage += `Missing or empty INV#: Ensure that the invoice number is provided.\n`;
+                errorMessage += `Missing or empty INV#, ensure that the invoice number is provided.\n`;
             } else if (existingInvNumbers.includes(invNumber)) {
                 // Check if invNumber is in duplicates from the API response
                 errorMessage += `INV#: ${invNumber} is already in the database.\n`;
+            }
+
+            // Check for duplicates in the previewed results
+            const previewInvCount = matches.filter(m => m[1].replace(/-/g, '') === invNumber).length;
+            if (previewInvCount > 1) {
+                errorMessage += `Duplicated INV#: ${invNumber} detected, ensure invNumber is unique.\n`;
             }
 
             if (!assignedImage) {
@@ -178,7 +184,7 @@ const EntryAnalyzer = () => {
             const requiredSpecs = ['INV#', 'CPU', 'GPU', 'CASE', 'MOBO', 'RAM', 'PSU'];
             const missingSpecs = requiredSpecs.filter(spec => !originalContent.includes(spec));
             if (missingSpecs.length > 0) {
-                errorMessage += `Missing ${missingSpecs.join(', ')}: Ensure spec list format is correct.\n`;
+                errorMessage += `Missing ${missingSpecs.join(', ')}, ensure spec list format is correct.\n`;
             }
 
             return {

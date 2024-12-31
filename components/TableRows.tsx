@@ -8,6 +8,7 @@ import { CiCirclePlus, CiCircleMinus } from "react-icons/ci";
 import Collapse from '@mui/material/Collapse'; // Import MUI's Collapse component
 import { ToastContainer, toast, Slide, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import imageCompression from "browser-image-compression";
 
 interface Result {
     invNumber: string;
@@ -45,7 +46,104 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
     const [bulkStatus, setBulkStatus] = useState("");
     const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
+    const [compressionProgress, setCompressionProgress] = useState<number>(0);
 
+
+    const handleBulkImageCompression = async () => {
+        if (selectedRows.length === 0) {
+            toast.info("Select at least 1 row to compress images.");
+            return;
+        }
+    
+        setCompressionProgress(0); // Reset progress to 0 at the start
+    
+        let processedCount = 0; // Track the number of processed images
+        const totalCount = selectedRows.length; // Total selected rows
+    
+        const compressedResults = await Promise.all(
+            results.map(async (result) => {
+                if (!selectedRows.includes(result.invNumber) || !result.image) {
+                    return result; // Skip rows not selected or without an image
+                }
+    
+                try {
+                    const options = {
+                        maxSizeMB: 0.8,
+                        maxWidthOrHeight: 1200,
+                        useWebWorker: true,
+                    };
+    
+                    let compressedImage;
+                    let originalFilename: string;
+    
+                    if (typeof result.image === "string") {
+                        // Extract the original filename from the URL
+                        originalFilename = result.image.split('/').pop() || `${result.invNumber}.webp`;
+    
+                        const response = await fetch(result.image);
+                        const blob = await response.blob();
+                        const file = new File([blob], originalFilename, { type: blob.type });
+                        compressedImage = await imageCompression(file, options);
+                    } else if (result.image instanceof File) {
+                        // Use the name property of the File object
+                        originalFilename = result.image.name;
+                        compressedImage = await imageCompression(result.image, options);
+                    } else {
+                        throw new Error("Invalid image format"); // Handle unexpected cases
+                    }
+    
+                    // Save compressed image to the database with the original filename
+                    await saveCompressedImageToDatabase(result.invNumber, compressedImage, originalFilename);
+    
+                    // Update progress after each compression
+                    processedCount += 1;
+                    setCompressionProgress(Math.round((processedCount / totalCount) * 100));
+    
+                    return {
+                        ...result,
+                        image: `/uploads/${originalFilename}`, // Update the image path to reflect the overwritten file
+                    };
+                } catch (error) {
+                    console.error(`Error compressing image for ${result.invNumber}:`, error);
+                    toast.error(`Error compressing image for ${result.invNumber}`);
+                    return result;
+                }
+            })
+        );
+    
+        setLocalResults(compressedResults);
+        toast.success("Images compressed successfully!");
+        setCompressionProgress(0); // Reset progress after completion
+    };
+    
+    const saveCompressedImageToDatabase = async (invNumber: string, compressedImageFile: File, originalFilename: string) => {
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(compressedImageFile);
+            reader.onloadend = async () => {
+                const base64Image = reader.result?.toString().split(',')[1]; // Extract Base64 string
+    
+                const response = await fetch('/api/saveCompressedImages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        invNumber,
+                        originalFilename, // Pass the original filename
+                        compressedImage: base64Image,
+                    }),
+                });
+    
+                if (!response.ok) {
+                    const error = await response.json();
+                    toast.error(`Error saving image: ${error.error || 'Unknown error'}`);
+                }
+            };
+        } catch (error) {
+            console.error('Error saving compressed image:', error);
+            toast.error('An error occurred while saving the image.');
+        }
+    };
+    
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -369,6 +467,19 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                             <option value="Posted">Posted</option>
                         </select>
                     </div>
+                    {/* <div className="flex items-center space-x-2">
+                        <button
+                            className={`bg-blue-500 text-white px-3 py-1 rounded-lg ${!isBulkSelect ? "opacity-50 cursor-not-allowed" : ""}`}
+                            onClick={handleBulkImageCompression}
+                            disabled={!isBulkSelect}
+                            title="Compress selected images"
+                        >
+                            Compress
+                        </button>
+                        {compressionProgress > 0 && (
+                            <span className="text-white text-sm">{compressionProgress}%</span>
+                        )}
+                    </div> */}
                 </div>
 
                 {/* Third Row: Total Results Count - Centered on mobile, inline on desktop */}

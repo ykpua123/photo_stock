@@ -531,12 +531,12 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                                     type="checkbox"
                                                     className="custom-checkbox"
                                                     checked={selectedRows.includes(result.invNumber)}
-                                                    onClick={(e) =>
+                                                    onChange={(e) =>
                                                         handleRowSelection(
                                                             index,
                                                             result.invNumber,
                                                             !selectedRows.includes(result.invNumber),
-                                                            (e as React.MouseEvent<HTMLInputElement>).shiftKey
+                                                            (e as unknown as React.MouseEvent<HTMLInputElement>).nativeEvent.shiftKey
                                                         )
                                                     }
                                                 />

@@ -38,8 +38,8 @@ const EntryAnalyzer = () => {
     // Function to handle image conversion to .webp
     const convertToWebP = (
         file: File,
-        quality: number = 0.8,
-        targetWidth: number = 1200
+        quality: number = 0.9,
+        targetWidth: number = 1300
     ): Promise<File> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();

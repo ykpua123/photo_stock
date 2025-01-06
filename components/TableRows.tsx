@@ -54,32 +54,32 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
             toast.info("Select at least 1 row to compress images.");
             return;
         }
-    
+
         setCompressionProgress(0); // Reset progress to 0 at the start
-    
+
         let processedCount = 0; // Track the number of processed images
         const totalCount = selectedRows.length; // Total selected rows
-    
+
         const compressedResults = await Promise.all(
             results.map(async (result) => {
                 if (!selectedRows.includes(result.invNumber) || !result.image) {
                     return result; // Skip rows not selected or without an image
                 }
-    
+
                 try {
                     const options = {
                         maxSizeMB: 0.8,
                         maxWidthOrHeight: 1200,
                         useWebWorker: true,
                     };
-    
+
                     let compressedImage;
                     let originalFilename: string;
-    
+
                     if (typeof result.image === "string") {
                         // Extract the original filename from the URL
                         originalFilename = result.image.split('/').pop() || `${result.invNumber}.webp`;
-    
+
                         const response = await fetch(result.image);
                         const blob = await response.blob();
                         const file = new File([blob], originalFilename, { type: blob.type });
@@ -91,14 +91,14 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                     } else {
                         throw new Error("Invalid image format"); // Handle unexpected cases
                     }
-    
+
                     // Save compressed image to the database with the original filename
                     await saveCompressedImageToDatabase(result.invNumber, compressedImage, originalFilename);
-    
+
                     // Update progress after each compression
                     processedCount += 1;
                     setCompressionProgress(Math.round((processedCount / totalCount) * 100));
-    
+
                     return {
                         ...result,
                         image: `/uploads/${originalFilename}`, // Update the image path to reflect the overwritten file
@@ -110,19 +110,19 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                 }
             })
         );
-    
+
         setLocalResults(compressedResults);
         toast.success("Images compressed successfully!");
         setCompressionProgress(0); // Reset progress after completion
     };
-    
+
     const saveCompressedImageToDatabase = async (invNumber: string, compressedImageFile: File, originalFilename: string) => {
         try {
             const reader = new FileReader();
             reader.readAsDataURL(compressedImageFile);
             reader.onloadend = async () => {
                 const base64Image = reader.result?.toString().split(',')[1]; // Extract Base64 string
-    
+
                 const response = await fetch('/api/saveCompressedImages', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -132,7 +132,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                         compressedImage: base64Image,
                     }),
                 });
-    
+
                 if (!response.ok) {
                     const error = await response.json();
                     toast.error(`Error saving image: ${error.error || 'Unknown error'}`);
@@ -143,7 +143,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
             toast.error('An error occurred while saving the image.');
         }
     };
-    
+
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -408,66 +408,67 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                 </div>
 
                 {/* Second Row: Bulk Select Toggle and Set Status - Stacks only on mobile */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0 font-mono">
-                    <div className="flex items-center space-x-2">
-                        {/* Information Icon with Tooltip */}
-                        <span className="relative group ml-2">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                className="w-5 h-5 text-gray-400 cursor-pointer"
+                {window.location.pathname.startsWith("/admin") && (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0 font-mono">
+                        <div className="flex items-center space-x-2">
+                            {/* Information Icon with Tooltip */}
+                            <span className="relative group ml-2">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    className="w-5 h-5 text-gray-400 cursor-pointer"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                                    />
+                                </svg>
+
+                                {/* Tooltip */}
+                                <div className="border border-white font-mono absolute bottom-full left-1/2 transform -translate-x-1/2 ml-2 mb-2 hidden group-hover:block bg-black text-white text-s rounded py-3 px-4 w-96">
+                                    <ul>
+                                        <li>1. Checkbox in the table header to select or deselect all rows</li><br />
+                                        <li>2. Hold shift key to select a range of checkboxes</li>
+                                    </ul>
+                                </div>
+                            </span>
+                            <label>Bulk Selection: </label>
+
+                            <div
+                                className={`relative inline-block w-10 h-5 transition duration-200 ease-linear rounded-full cursor-pointer ${isBulkSelect ? 'bg-green-500' : 'bg-red-500'}`}
+                                onClick={toggleBulkSelect}
+                                title="Toggle checkbox"
                             >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
-                                />
-                            </svg>
-
-                            {/* Tooltip */}
-                            <div className="border border-white font-mono absolute bottom-full left-1/2 transform -translate-x-1/2 ml-2 mb-2 hidden group-hover:block bg-black text-white text-s rounded py-3 px-4 w-96">
-                                <ul>
-                                    <li>1. Checkbox in the table header to select or deselect all rows</li><br />
-                                    <li>2. Hold shift key to select a range of checkboxes</li>
-                                </ul>
+                                <span
+                                    className={`absolute left-1 top-1 w-3 h-3 bg-black rounded-full transition-transform transform ${isBulkSelect ? 'translate-x-5' : 'translate-x-0'}`}
+                                ></span>
                             </div>
-                        </span>
-                        <label>Bulk Selection: </label>
-
-                        <div
-                            className={`relative inline-block w-10 h-5 transition duration-200 ease-linear rounded-full cursor-pointer ${isBulkSelect ? 'bg-green-500' : 'bg-red-500'}`}
-                            onClick={toggleBulkSelect}
-                            title="Toggle checkbox"
-                        >
-                            <span
-                                className={`absolute left-1 top-1 w-3 h-3 bg-black rounded-full transition-transform transform ${isBulkSelect ? 'translate-x-5' : 'translate-x-0'}`}
-                            ></span>
                         </div>
-                    </div>
 
-                    <div className={`flex items-center space-x-2 ${!isBulkSelect ? 'opacity-50' : 'opacity-100'}`}>
-                        <label>Set: </label>
-                        <select
-                            className="text-white p-2 border border-white/60 rounded-lg bg-black cursor-pointer"
-                            value={bulkStatus}
-                            onClick={() => setBulkStatus("")} // Temporarily reset to allow reselecting
-                            onChange={(e) => {
-                                const selectedValue = e.target.value;
-                                setBulkStatus(e.target.value);
-                                handleBulkStatusChange(selectedValue);
-                            }}
-                            disabled={!isBulkSelect} // Disable when Bulk Select is off
-                        >
-                            <option value="" disabled hidden>Status</option>
-                            <option value="Ready">Ready</option>
-                            <option value="Scheduled">Scheduled</option>
-                            <option value="Posted">Posted</option>
-                        </select>
-                    </div>
-                    {/* <div className="flex items-center space-x-2">
+                        <div className={`flex items-center space-x-2 ${!isBulkSelect ? 'opacity-50' : 'opacity-100'}`}>
+                            <label>Set: </label>
+                            <select
+                                className="text-white p-2 border border-white/60 rounded-lg bg-black cursor-pointer"
+                                value={bulkStatus}
+                                onClick={() => setBulkStatus("")} // Temporarily reset to allow reselecting
+                                onChange={(e) => {
+                                    const selectedValue = e.target.value;
+                                    setBulkStatus(e.target.value);
+                                    handleBulkStatusChange(selectedValue);
+                                }}
+                                disabled={!isBulkSelect} // Disable when Bulk Select is off
+                            >
+                                <option value="" disabled hidden>Status</option>
+                                <option value="Ready">Ready</option>
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="Posted">Posted</option>
+                            </select>
+                        </div>
+                        {/* <div className="flex items-center space-x-2">
                         <button
                             className={`bg-blue-500 text-white px-3 py-1 rounded-lg ${!isBulkSelect ? "opacity-50 cursor-not-allowed" : ""}`}
                             onClick={handleBulkImageCompression}
@@ -480,8 +481,8 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                             <span className="text-white text-sm">{compressionProgress}%</span>
                         )}
                     </div> */}
-                </div>
-
+                    </div>
+                )}
                 {/* Third Row: Total Results Count - Centered on mobile, inline on desktop */}
                 <div className="flex items-center justify-end sm:justify-start">
                     {resultsLength}
@@ -591,27 +592,51 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                         {result.total}
                                     </td>
                                     <td className="px-2 py-1 w-auto border-r border-white/20 sm:px-4 relative sm:static">
-                                        <button
-                                            onClick={() => setIsStatusMenuOpen(isStatusMenuOpen === index ? null : index)}
-                                            className={`rounded-full py-0 px-2 flex items-center space-x-1 ${statuses[result.invNumber] === 'Scheduled'
-                                                ? 'bg-purple-900'
-                                                : statuses[result.invNumber] === 'Posted'
-                                                    ? 'bg-green-700'
-                                                    : 'bg-gray-600'
-                                                } text-white`}
-                                        >
-                                            <div className="flex items-center space-x-1">
-                                                <div
-                                                    className={`mr-1 rounded-full h-2 w-2 ${statuses[result.invNumber] === 'Scheduled'
-                                                        ? 'bg-purple-400'
-                                                        : statuses[result.invNumber] === 'Posted'
-                                                            ? 'bg-green-400'
-                                                            : 'bg-gray-400'
-                                                        } flex-shrink-0`}
-                                                ></div>
-                                                <span>{statuses[result.invNumber] || 'Ready'}</span>
-                                            </div>
-                                        </button>
+                                        {window.location.pathname.startsWith("/admin") ? (
+                                            <button
+                                                onClick={() => setIsStatusMenuOpen(isStatusMenuOpen === index ? null : index)}
+                                                className={`rounded-full py-0 px-2 flex items-center space-x-1 ${statuses[result.invNumber] === 'Scheduled'
+                                                    ? 'bg-purple-900'
+                                                    : statuses[result.invNumber] === 'Posted'
+                                                        ? 'bg-green-700'
+                                                        : 'bg-gray-600'
+                                                    } text-white`}
+                                            >
+                                                <div className="flex items-center space-x-1">
+                                                    <div
+                                                        className={`mr-1 rounded-full h-2 w-2 ${statuses[result.invNumber] === 'Scheduled'
+                                                            ? 'bg-purple-400'
+                                                            : statuses[result.invNumber] === 'Posted'
+                                                                ? 'bg-green-400'
+                                                                : 'bg-gray-400'
+                                                            } flex-shrink-0`}
+                                                    ></div>
+                                                    <span>{statuses[result.invNumber] || 'Ready'}</span>
+                                                </div>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => toggleRow(result.invNumber)}
+                                                className={`rounded-full py-0 px-2 flex items-center space-x-1 ${statuses[result.invNumber] === 'Scheduled'
+                                                    ? 'bg-purple-900'
+                                                    : statuses[result.invNumber] === 'Posted'
+                                                        ? 'bg-green-700'
+                                                        : 'bg-gray-600'
+                                                    } text-white`}
+                                            >
+                                                <div className="flex items-center space-x-1">
+                                                    <div
+                                                        className={`mr-1 rounded-full h-2 w-2 ${statuses[result.invNumber] === 'Scheduled'
+                                                            ? 'bg-purple-400'
+                                                            : statuses[result.invNumber] === 'Posted'
+                                                                ? 'bg-green-400'
+                                                                : 'bg-gray-400'
+                                                            } flex-shrink-0`}
+                                                    ></div>
+                                                    <span>{statuses[result.invNumber] || 'Ready'}</span>
+                                                </div>
+                                            </button>
+                                        )}
 
                                         {isStatusMenuOpen === index && (
                                             <div
@@ -665,9 +690,9 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                                 {copiedIndex === index ? <MdCheckCircle className="text-green-500" size={19} /> : <MdContentCopy size={19} />}
                                             </button>
                                             {window.location.pathname.startsWith("/admin") && (
-                                            <button onClick={() => handleDelete(result)} title="Delete entry">
-                                                <MdDeleteForever size={22} className="text-red-500 hover:text-red-700" />
-                                            </button>
+                                                <button onClick={() => handleDelete(result)} title="Delete entry">
+                                                    <MdDeleteForever size={22} className="text-red-500 hover:text-red-700" />
+                                                </button>
                                             )}
                                         </div>
                                     </td>
@@ -677,28 +702,28 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                 {/* Expanded Row with DetailCards */}
                                 <tr>
                                     <td colSpan={6} className="px-4 py-0">
-                                    {window.location.pathname.startsWith("/admin") ? (
-                                        <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ width: '111%', height: '36', lineHeight: 2 }}>
-                                            <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
-                                                <DetailCards
-                                                    results={[result]}
-                                                    onDelete={onDelete}
-                                                    totalResults={totalResults}
-                                                    searchedResults={searchedResults}
-                                                />
-                                            </div>
-                                        </Collapse>
+                                        {window.location.pathname.startsWith("/admin") ? (
+                                            <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ width: '111%', height: '36', lineHeight: 2 }}>
+                                                <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
+                                                    <DetailCards
+                                                        results={[result]}
+                                                        onDelete={onDelete}
+                                                        totalResults={totalResults}
+                                                        searchedResults={searchedResults}
+                                                    />
+                                                </div>
+                                            </Collapse>
                                         ) : (
                                             <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ width: '108.5%', height: '36', lineHeight: 2 }}>
-                                            <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
-                                                <DetailCards
-                                                    results={[result]}
-                                                    onDelete={onDelete}
-                                                    totalResults={totalResults}
-                                                    searchedResults={searchedResults}
-                                                />
-                                            </div>
-                                        </Collapse>
+                                                <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
+                                                    <DetailCards
+                                                        results={[result]}
+                                                        onDelete={onDelete}
+                                                        totalResults={totalResults}
+                                                        searchedResults={searchedResults}
+                                                    />
+                                                </div>
+                                            </Collapse>
                                         )}
                                     </td>
                                 </tr>

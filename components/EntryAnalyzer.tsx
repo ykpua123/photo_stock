@@ -174,7 +174,7 @@ const EntryAnalyzer = () => {
             // Check for duplicates in the previewed results
             const previewInvCount = matches.filter(m => m[1].replace(/-/g, '') === invNumber).length;
             if (previewInvCount > 1) {
-                errorMessage += `Duplicated INV#: ${invNumber} detected, ensure invNumber is unique.\n`;
+                errorMessage += `Multiple INV#: ${invNumber} detected, ensure invNumber is unique.\n`;
             }
 
             if (!assignedImage) {
@@ -282,7 +282,7 @@ const EntryAnalyzer = () => {
             {/* Image Drag-and-Drop Area */}
             <div
                 {...getRootProps()}
-                className="border-2 border-dashed border-white/50 p-6 rounded-lg text-center mb-4 bg-neutral-900 mt-4 cursor-pointer"
+                className="border-2 border-dashed border-white/50 p-6 rounded-lg text-center mb-4 bg-neutral-900 mt-4 cursor-pointer h-60 flex flex-col items-center justify-center"
             >
                 <input {...getInputProps()} />
                 {isDragActive ? (
@@ -294,15 +294,15 @@ const EntryAnalyzer = () => {
                     </p>
                 )}
                 {/* Show progress bar if uploading */}
-                {isUploading && (
+              {isUploading && (
                     <div className="mt-4 text-center font-mono">
-                        <div style={{ width: '10%', height: '10%', margin: '0 auto' }}>
+                        <div style={{ width: '100px', height: '100px', margin: '0 auto' }}>
                             <CircularProgressbar
                                 value={(currentUploadIndex / imageCount) * 100 + (uploadingProgress / imageCount)} // Calculate overall progress
                                 text={`${Math.floor((currentUploadIndex / imageCount) * 100 + (uploadingProgress / imageCount))}%`} // Display cumulative percentage
                                 styles={{
                                     path: { stroke: `rgba(255, 194, 0, ${(currentUploadIndex / imageCount) * 100 + (uploadingProgress / imageCount) / 100})` },
-                                    text: { fill: '#fff', fontSize: '14px' },
+                                    text: { fill: '#fff', fontSize: '16px' },
                                 }}
                             />
                         </div>
@@ -311,7 +311,6 @@ const EntryAnalyzer = () => {
                         </p>
                     </div>
                 )}
-
             </div>
 
 

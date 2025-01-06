@@ -664,9 +664,11 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                             >
                                                 {copiedIndex === index ? <MdCheckCircle className="text-green-500" size={19} /> : <MdContentCopy size={19} />}
                                             </button>
+                                            {window.location.pathname.startsWith("/admin") && (
                                             <button onClick={() => handleDelete(result)} title="Delete entry">
                                                 <MdDeleteForever size={22} className="text-red-500 hover:text-red-700" />
                                             </button>
+                                            )}
                                         </div>
                                     </td>
 
@@ -675,6 +677,7 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                 {/* Expanded Row with DetailCards */}
                                 <tr>
                                     <td colSpan={6} className="px-4 py-0">
+                                    {window.location.pathname.startsWith("/admin") ? (
                                         <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ width: '111%', height: '36', lineHeight: 2 }}>
                                             <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
                                                 <DetailCards
@@ -685,6 +688,18 @@ const TableRows: React.FC<TableRowsProps> = ({ results, onDelete, totalResults, 
                                                 />
                                             </div>
                                         </Collapse>
+                                        ) : (
+                                            <Collapse in={expandedRows.includes(result.invNumber)} unmountOnExit sx={{ width: '108.5%', height: '36', lineHeight: 2 }}>
+                                            <div className="max-[437px]:w-1/2 max-[638px]:w-3/5 sm:w-2/3 md:w-10/12 lg:w-full sticky top-0 left-0 z-1">
+                                                <DetailCards
+                                                    results={[result]}
+                                                    onDelete={onDelete}
+                                                    totalResults={totalResults}
+                                                    searchedResults={searchedResults}
+                                                />
+                                            </div>
+                                        </Collapse>
+                                        )}
                                     </td>
                                 </tr>
                             </React.Fragment>
